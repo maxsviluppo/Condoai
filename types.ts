@@ -66,13 +66,14 @@ export interface Assembly {
   agenda: string[];
 }
 
-// New interfaces for Registry/Anagrafica
+// Updated interface for Registry/Anagrafica
 export interface Person {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
+  fiscalCode: string; // New field added
   role: 'Proprietario' | 'Inquilino' | 'Comproprietario';
 }
 

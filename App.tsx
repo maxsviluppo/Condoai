@@ -30,6 +30,17 @@ const App: React.FC = () => {
     setSelectedCondoId(newCondo.id);
   };
 
+  const updateCondo = (updatedCondo: Condominium) => {
+    setCondos(prev => prev.map(c => c.id === updatedCondo.id ? updatedCondo : c));
+  };
+
+  const deleteCondo = (id: string) => {
+    if (confirm("Sei sicuro di voler eliminare definitivamente questo condominio e tutti i suoi dati?")) {
+      setCondos(prev => prev.filter(c => c.id !== id));
+      if (selectedCondoId === id) setSelectedCondoId('all');
+    }
+  };
+
   const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([
     { id: '1', subject: 'Perdita acqua garage', location: 'Piano -1', urgency: 'Alta', status: 'In Lavorazione', date: '2023-10-08', description: 'Acqua che fuoriesce dal giunto.' },
     { id: '2', subject: 'Lampadina fulminata', location: 'Ingresso B', urgency: 'Bassa', status: 'Aperta', date: '2023-10-09', description: 'Sostituzione plafoniera.' }
@@ -79,7 +90,14 @@ const App: React.FC = () => {
       case AppSection.RESIDENTS: return <Communication />;
       case AppSection.LEGAL: return <LegalFiscal />;
       case AppSection.ANALYTICS: return <Analytics />;
-      case AppSection.CONDOMINIUMS: return <CondominiumRegistry initialCondoId={selectedCondoId} condos={condos} onAddCondo={addCondo} />;
+      case AppSection.CONDOMINIUMS: 
+        return <CondominiumRegistry 
+          initialCondoId={selectedCondoId} 
+          condos={condos} 
+          onAddCondo={addCondo} 
+          onUpdateCondo={updateCondo}
+          onDeleteCondo={deleteCondo}
+        />;
       case AppSection.SUPPLIERS: return <div className="p-12 text-center text-slate-400">Modulo Fornitori & Preventivi AI in arrivo...</div>;
       default: return <Dashboard selectedCondoId={selectedCondoId} />;
     }
