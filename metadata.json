@@ -1,0 +1,7 @@
+{
+  "name": "CondoAI - Smart Building Management",
+  "description": "An advanced condominium management platform featuring AI-integrated accounting, assembly management, resident communications, and supplier relations with voice command capabilities.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
