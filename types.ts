@@ -66,32 +66,39 @@ export interface Assembly {
   agenda: string[];
 }
 
-// Updated interface for Registry/Anagrafica
 export interface Person {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
+  pec?: string;
   phone: string;
-  fiscalCode: string; // New field added
+  fiscalCode: string;
+  residenceAddress?: string;
   role: 'Proprietario' | 'Inquilino' | 'Comproprietario';
 }
 
 export interface Unit {
   id: string;
   internal: string;
+  staircase?: string;
   floor: string;
+  subalterno?: string; // SUB Catastale
   millesimes: number;
   ownerId: string;
-  tenantId?: string;
+  tenantId?: string; // ID Inquilino
   type: 'Appartamento' | 'Box' | 'Cantina' | 'Negozio';
 }
 
 export interface Condominium {
   id: string;
   name: string;
-  address: string;
+  street: string;
+  streetNumber: string;
+  cap: string;
   city: string;
+  province: string;
   fiscalCode: string;
+  cadastralData?: string; // Foglio, Particella, Sezione
   totalUnits: number;
 }

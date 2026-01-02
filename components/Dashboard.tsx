@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   BarChart, 
   Bar, 
@@ -7,17 +7,15 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer, 
-  Cell,
-  PieChart,
-  Pie
+  ResponsiveContainer
 } from 'recharts';
 import { 
   AlertCircle, 
   TrendingUp, 
   Wallet, 
   Calendar,
-  Sparkles
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
 import { geminiService } from '../services/geminiService';
 
@@ -34,17 +32,9 @@ const mockData = [
   { name: 'Giu', spesa: 3800 },
 ];
 
-const pieData = [
-  { name: 'Manutenzione', value: 400 },
-  { name: 'Energia', value: 300 },
-  { name: 'Amministrazione', value: 100 },
-  { name: 'Altro', value: 200 },
-];
-
-const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
-
 const Dashboard: React.FC<DashboardProps> = ({ selectedCondoId }) => {
-  const [aiInsight, setAiInsight] = useState<string>('Analisi AI in corso...');
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const condoNames: Record<string, string> = {
     'all': 'Riepilogo Tutti i Condomini',
@@ -52,23 +42,23 @@ const Dashboard: React.FC<DashboardProps> = ({ selectedCondoId }) => {
     '2': 'Residenza Parco'
   };
 
-  useEffect(() => {
-    const fetchInsight = async () => {
-      try {
-        const insight = await geminiService.analyzeFinancials({
-          context: selectedCondoId === 'all' ? 'Portafoglio Globale' : condoNames[selectedCondoId],
-          total_spend: selectedCondoId === 'all' ? 52400 : 26106,
-          top_category: 'Manutenzione',
-          status: 'Cassa in positivo',
-          morosity_rate: selectedCondoId === 'all' ? '5.2%' : '4%'
-        });
-        setAiInsight(insight || 'Impossibile generare analisi al momento.');
-      } catch (e) {
-        setAiInsight('Errore durante la generazione dell\'analisi AI.');
-      }
-    };
-    fetchInsight();
-  }, [selectedCondoId]);
+  const handleManualAnalysis = async () => {
+    setIsAnalyzing(true);
+    try {
+      const insight = await geminiService.analyzeFinancials({
+        context: selectedCondoId === 'all' ? 'Portafoglio Globale' : condoNames[selectedCondoId],
+        total_spend: selectedCondoId === 'all' ? 52400 : 26106,
+        top_category: 'Manutenzione',
+        status: 'Cassa in positivo',
+        morosity_rate: selectedCondoId === 'all' ? '5.2%' : '4%'
+      });
+      setAiInsight(insight || 'Analisi completata.');
+    } catch (e) {
+      setAiInsight('Errore durante la generazione dell\'analisi AI.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -82,12 +72,6 @@ const Dashboard: React.FC<DashboardProps> = ({ selectedCondoId }) => {
               ? 'Dati aggregati di tutto il tuo portafoglio immobiliare.' 
               : `Dettagli e performance per ${condoNames[selectedCondoId]}.`}
           </p>
-        </div>
-        <div className="flex gap-4">
-          <div className="bg-emerald-100 text-emerald-700 px-4 py-2 rounded-lg flex items-center gap-2">
-            <Sparkles className="w-4 h-4" />
-            <span className="font-medium text-sm text-emerald-800">AI Active</span>
-          </div>
         </div>
       </header>
 
@@ -130,21 +114,30 @@ const Dashboard: React.FC<DashboardProps> = ({ selectedCondoId }) => {
           </div>
         </div>
 
-        <div className="bg-slate-800 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Sparkles className="w-32 h-32" />
-          </div>
+        <div className="bg-slate-800 text-white p-8 rounded-3xl shadow-lg relative overflow-hidden group">
           <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
             <Sparkles className="w-5 h-5 text-emerald-400" /> 
-            Analisi Predittiva AI
+            Analisi AI
           </h3>
           <div className="space-y-4 relative z-10">
-            <p className="text-slate-300 text-sm leading-relaxed italic">
-              "{aiInsight}"
-            </p>
+            {aiInsight ? (
+              <p className="text-slate-300 text-sm leading-relaxed italic">"{aiInsight}"</p>
+            ) : (
+              <p className="text-slate-400 text-sm italic">Fai clic su 'Analizza' per generare approfondimenti finanziari con l'AI.</p>
+            )}
             <div className="pt-4 border-t border-slate-700">
-              <button className="text-xs font-bold text-emerald-400 uppercase tracking-widest hover:text-emerald-300 transition-colors">
-                Genera Report Dettagliato →
+              <button 
+                onClick={handleManualAnalysis}
+                disabled={isAnalyzing}
+                className="flex items-center gap-2 text-xs font-bold text-emerald-400 uppercase tracking-widest hover:text-emerald-300 transition-colors disabled:opacity-50"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <RefreshCw className="w-3 h-3 animate-spin" /> Elaborazione...
+                  </>
+                ) : (
+                  <>Analizza Dati Finanziari →</>
+                )}
               </button>
             </div>
           </div>
