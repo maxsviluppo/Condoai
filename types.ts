@@ -83,10 +83,10 @@ export interface Unit {
   internal: string;
   staircase?: string;
   floor: string;
-  subalterno?: string; // SUB Catastale
-  millesimes: number;
+  subalterno?: string;
+  millesimals: Record<string, number>; // Gestione tabelle A, B, C...
   ownerId: string;
-  tenantId?: string; // ID Inquilino
+  tenantId?: string;
   type: 'Appartamento' | 'Box' | 'Cantina' | 'Negozio';
 }
 
@@ -99,6 +99,6 @@ export interface Condominium {
   city: string;
   province: string;
   fiscalCode: string;
-  cadastralData?: string; // Foglio, Particella, Sezione
+  cadastralData?: string;
   totalUnits: number;
 }
