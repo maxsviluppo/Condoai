@@ -141,7 +141,7 @@ const App: React.FC = () => {
         return <Expenses selectedCondoId={selectedCondoId} condos={condos} />;
 
       case AppSection.INCOME:
-        return <Income selectedCondoId={selectedCondoId} condos={condos} />;
+        return <Income selectedCondoId={selectedCondoId} condos={condos} units={units} people={people} />;
 
       case AppSection.BUDGET:
         return <Budget selectedCondoId={selectedCondoId} condos={condos} />;

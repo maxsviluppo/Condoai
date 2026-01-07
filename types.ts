@@ -196,3 +196,24 @@ export interface Expense {
   // Note
   description?: string;
 }
+
+// Pagamento Quota Condominiale
+export interface Payment {
+  id: string;
+  unitId: string; // ID Unità Immobiliare
+  condoId: string; // ID Condominio
+  year: number; // Anno
+  month: number; // Mese (1-12)
+
+  // Importi
+  expectedAmount: number; // Quota mensile prevista
+  paidAmount: number; // Importo pagato
+
+  // Stato
+  status: 'unpaid' | 'partial' | 'paid'; // Non pagato, Acconto, Pagato
+
+  // Dettagli
+  paymentDate?: string; // Data pagamento
+  paymentMethod?: 'Bonifico' | 'Assegno' | 'Contanti' | 'Carta' | 'RID' | 'Altro';
+  notes?: string;
+}
