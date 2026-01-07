@@ -698,7 +698,7 @@ const CondominiumRegistry: React.FC<CondominiumRegistryProps> = ({
               <button onClick={() => setIsCondoModalOpen(false)} className="p-3 hover:bg-slate-100 rounded-full"><X className="w-8 h-8 text-slate-300" /></button>
             </div>
 
-            <div className="p-10 space-y-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
+            <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto custom-scrollbar">{/* Ridotto da p-10 space-y-8 max-h-[75vh] */}
               {/* Nome Condominio */}
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700">Nome Condominio *</label>
@@ -886,11 +886,11 @@ const CondominiumRegistry: React.FC<CondominiumRegistryProps> = ({
               </div>
 
               {/* Tabelle Millesimali - Functional */}
-              <div className="space-y-4">
+              <div className="space-y-3">{/* Ridotto da space-y-4 */}
                 <label className="text-sm font-bold text-slate-700">Tabelle Millesimali</label>
 
                 {condoMillesimalTables.map((table, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-3 items-center p-4 bg-slate-50 rounded-xl border border-slate-200">
+                  <div key={index} className="grid grid-cols-12 gap-2 items-center p-3 bg-slate-50 rounded-xl border border-slate-200">{/* Ridotto gap e padding */}
                     {/* Codice */}
                     <input
                       type="text"
@@ -952,10 +952,10 @@ const CondominiumRegistry: React.FC<CondominiumRegistryProps> = ({
               </div>
             </div>
 
-            <div className="p-10 border-t border-slate-100 flex justify-end gap-4 bg-slate-50/50">
-              <button onClick={() => setIsCondoModalOpen(false)} className="px-8 py-4 font-black text-slate-400 text-xs uppercase tracking-widest">Annulla</button>
-              <button onClick={handleSaveCondo} className="px-14 py-5 bg-slate-900 text-white rounded-[24px] font-black shadow-2xl flex items-center gap-3">
-                <Check className="w-6 h-6 text-emerald-400" /> {isEditingCondo ? 'Aggiorna' : 'Salva'}
+            <div className="p-6 border-t border-slate-100 flex justify-end gap-4 bg-slate-50/50">{/* Ridotto da p-10 */}
+              <button onClick={() => setIsCondoModalOpen(false)} className="px-6 py-3 font-bold text-slate-400 text-xs uppercase tracking-widest hover:text-slate-600 transition-colors">Annulla</button>
+              <button onClick={handleSaveCondo} className="px-8 py-3 bg-slate-900 text-white rounded-2xl font-bold shadow-xl flex items-center gap-2 hover:bg-slate-800 transition-all">
+                <Check className="w-5 h-5 text-emerald-400" /> {isEditingCondo ? 'Aggiorna' : 'Salva'}
               </button>
             </div>
           </div>

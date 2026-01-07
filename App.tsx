@@ -33,8 +33,14 @@ const App: React.FC = () => {
       city: 'Milano',
       province: 'MI',
       fiscalCode: '90012345678',
+      numberOfUnits: 24,
       totalUnits: 24,
-      cadastralData: 'Fg. 4, Part. 120'
+      cadastralData: 'Fg. 4, Part. 120',
+      millesimalTables: [
+        { id: 'tab_a', name: 'Tabella A - Generali', values: {} },
+        { id: 'tab_b', name: 'Tabella B - Scale', values: {} },
+        { id: 'tab_c', name: 'Tabella C - Ascensore', values: {} }
+      ]
     },
     {
       id: '2',
@@ -45,8 +51,13 @@ const App: React.FC = () => {
       city: 'Milano',
       province: 'MI',
       fiscalCode: '91122334455',
+      numberOfUnits: 12,
       totalUnits: 12,
-      cadastralData: 'Fg. 12, Part. 55'
+      cadastralData: 'Fg. 12, Part. 55',
+      millesimalTables: [
+        { id: 'tab_a', name: 'Tabella A - Generali', values: {} },
+        { id: 'tab_b', name: 'Tabella B - Riscaldamento', values: {} }
+      ]
     },
   ]);
 
@@ -72,6 +83,18 @@ const App: React.FC = () => {
       setCondos(prev => prev.filter(c => c.id !== id));
       if (selectedCondoId === id) setSelectedCondoId('all');
     }
+  };
+
+  const addUnit = (newUnit: Unit) => {
+    setUnits(prev => [...prev, newUnit]);
+  };
+
+  const updateUnit = (updatedUnit: Unit) => {
+    setUnits(prev => prev.map(u => u.id === updatedUnit.id ? updatedUnit : u));
+  };
+
+  const deleteUnit = (id: string) => {
+    setUnits(prev => prev.filter(u => u.id !== id));
   };
 
   const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([
@@ -104,7 +127,14 @@ const App: React.FC = () => {
         />;
 
       case AppSection.UNITS:
-        return <Units />;
+        return <Units
+          units={units}
+          condos={condos}
+          people={people}
+          onAddUnit={addUnit}
+          onUpdateUnit={updateUnit}
+          onDeleteUnit={deleteUnit}
+        />;
 
       case AppSection.EXPENSES:
         return <Expenses />;

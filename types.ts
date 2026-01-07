@@ -91,14 +91,17 @@ export interface Person {
 export interface Unit {
   id: string;
   condoId: string; // Collegamento obbligatorio al condominio
-  internal: string;
-  staircase?: string;
-  floor: string;
-  subalterno?: string;
-  millesimals: Record<string, number>;
-  ownerId: string;
-  tenantId?: string;
+  internal: string; // Numero Interno (es. 1, A1, Int.5)
+  staircase?: string; // Scala (es. A, B, 1)
+  floor: string; // Piano
+  subalterno?: string; // Riferimento catastale
   type: 'Appartamento' | 'Box' | 'Cantina' | 'Negozio';
+  surface?: number; // Superficie in mq
+  monthlyFee?: number; // Quota Mensile Ordinaria (€)
+  millesimals: Record<string, number>; // Tabella -> valore millesimale
+  ownerId: string; // ID del proprietario
+  tenantId?: string; // ID dell'inquilino (opzionale)
+  isRented?: boolean; // Flag per indicare se è affittato
 }
 
 export interface MillesimalTable {

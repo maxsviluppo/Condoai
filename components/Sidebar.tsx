@@ -61,7 +61,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     <div className="w-64 bg-slate-800 text-slate-100 h-screen flex flex-col fixed left-0 top-0 z-30">
       <div className="p-6">
         <h1 className="text-2xl font-bold text-emerald-400 flex items-center gap-2">
-          <Mic className="w-6 h-6" /> CondoAI
+          <Mic className="w-6 h-6" /> DomusAI
         </h1>
         <p className="text-xs text-slate-400 mt-1 uppercase tracking-widest">Gestione Intelligente</p>
       </div>
@@ -73,8 +73,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={() => setIsCondoMenuOpen(!isCondoMenuOpen)}
               className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all border ${isCondoMenuOpen
-                  ? 'bg-slate-700 border-emerald-500/50 shadow-lg'
-                  : 'bg-slate-900/40 border-slate-700 hover:bg-slate-700/50 hover:border-slate-600'
+                ? 'bg-slate-700 border-emerald-500/50 shadow-lg'
+                : 'bg-slate-900/40 border-slate-700 hover:bg-slate-700/50 hover:border-slate-600'
                 }`}
             >
               <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
@@ -123,8 +123,8 @@ const Sidebar: React.FC<SidebarProps> = ({
               key={item.id}
               onClick={() => onNavigate(item.id)}
               className={`w-full flex items-center gap-4 px-6 py-3.5 transition-all duration-200 ${isActive
-                  ? 'bg-slate-700 text-white border-r-4 border-emerald-400 shadow-inner'
-                  : 'hover:bg-slate-700/50 text-slate-400 hover:text-slate-200'
+                ? 'bg-slate-700 text-white border-r-4 border-emerald-400 shadow-inner'
+                : 'hover:bg-slate-700/50 text-slate-400 hover:text-slate-200'
                 }`}
             >
               <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : ''}`} />
@@ -138,8 +138,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         <button
           onClick={() => onNavigate(AppSection.EMERGENCY)}
           className={`w-full p-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all ${currentSection === AppSection.EMERGENCY
-              ? 'bg-red-500 text-white scale-105 shadow-lg shadow-red-500/20'
-              : 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white'
+            ? 'bg-red-500 text-white scale-105 shadow-lg shadow-red-500/20'
+            : 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white'
             }`}
         >
           <AlertOctagon className="w-5 h-5" />
