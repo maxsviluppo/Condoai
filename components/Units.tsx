@@ -23,6 +23,7 @@ interface UnitsProps {
     units: Unit[];
     condos: Condominium[];
     people: Person[];
+    selectedCondoId: string; // Filtro globale dall'App
     onAddUnit: (unit: Unit) => void;
     onUpdateUnit: (unit: Unit) => void;
     onDeleteUnit: (id: string) => void;
@@ -32,12 +33,12 @@ const Units: React.FC<UnitsProps> = ({
     units,
     condos,
     people,
+    selectedCondoId, // Riceve il filtro globale
     onAddUnit,
     onUpdateUnit,
     onDeleteUnit
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedCondoFilter, setSelectedCondoFilter] = useState<string>('all');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
 
@@ -60,6 +61,14 @@ const Units: React.FC<UnitsProps> = ({
     // Millesimals form state (dynamic based on selected condo)
     const [millesimalValues, setMillesimalValues] = useState<Record<string, number>>({});
 
+    // Tenant info state (per inserimento diretto)
+    const [tenantInfo, setTenantInfo] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: ''
+    });
+
     // Get selected condominium for the form
     const selectedCondoForForm = condos.find(c => c.id === unitForm.condoId);
 
@@ -67,9 +76,9 @@ const Units: React.FC<UnitsProps> = ({
     const filteredUnits = useMemo(() => {
         let result = units;
 
-        // Filter by condominium
-        if (selectedCondoFilter !== 'all') {
-            result = result.filter(u => u.condoId === selectedCondoFilter);
+        // Filter by condominium (usa il filtro globale)
+        if (selectedCondoId !== 'all') {
+            result = result.filter(u => u.condoId === selectedCondoId);
         }
 
         // Filter by search query
@@ -85,23 +94,23 @@ const Units: React.FC<UnitsProps> = ({
         }
 
         return result;
-    }, [units, selectedCondoFilter, searchQuery, people]);
+    }, [units, selectedCondoId, searchQuery, people]);
 
     // Statistics
     const stats = useMemo(() => {
-        const filtered = selectedCondoFilter === 'all' ? units : units.filter(u => u.condoId === selectedCondoFilter);
+        const filtered = selectedCondoId === 'all' ? units : units.filter(u => u.condoId === selectedCondoId);
         return {
             total: filtered.length,
             rented: filtered.filter(u => u.isRented || u.tenantId).length,
             owned: filtered.filter(u => !u.isRented && !u.tenantId).length,
             apartments: filtered.filter(u => u.type === 'Appartamento').length
         };
-    }, [units, selectedCondoFilter]);
+    }, [units, selectedCondoId]);
 
     const openNewUnitModal = () => {
         setEditingUnit(null);
         setUnitForm({
-            condoId: selectedCondoFilter !== 'all' ? selectedCondoFilter : (condos[0]?.id || ''),
+            condoId: selectedCondoId !== 'all' ? selectedCondoId : (condos[0]?.id || ''),
             internal: '',
             staircase: '',
             floor: '',
@@ -131,6 +140,24 @@ const Units: React.FC<UnitsProps> = ({
             return;
         }
 
+        // Se l'inquilino è "new", salva i dati inseriti
+        let finalTenantId = unitForm.tenantId;
+        let finalTenantInfo = undefined;
+
+        if (unitForm.tenantId === 'new') {
+            if (!tenantInfo.firstName || !tenantInfo.lastName) {
+                alert('Inserisci almeno nome e cognome dell\'inquilino');
+                return;
+            }
+            finalTenantId = undefined; // Non c'è un ID perché non è in anagrafica
+            finalTenantInfo = {
+                firstName: tenantInfo.firstName,
+                lastName: tenantInfo.lastName,
+                email: tenantInfo.email || undefined,
+                phone: tenantInfo.phone || undefined
+            };
+        }
+
         const unitToSave: Unit = {
             id: editingUnit?.id || `unit_${Date.now()}`,
             condoId: unitForm.condoId,
@@ -143,8 +170,9 @@ const Units: React.FC<UnitsProps> = ({
             subalterno: unitForm.subalterno,
             millesimals: millesimalValues,
             ownerId: unitForm.ownerId || '',
-            tenantId: unitForm.tenantId,
-            isRented: unitForm.isRented || false
+            tenantId: finalTenantId,
+            tenantInfo: finalTenantInfo,
+            isRented: !!finalTenantId || !!finalTenantInfo
         };
 
         if (editingUnit) {
@@ -153,6 +181,8 @@ const Units: React.FC<UnitsProps> = ({
             onAddUnit(unitToSave);
         }
 
+        // Reset form
+        setTenantInfo({ firstName: '', lastName: '', email: '', phone: '' });
         setIsModalOpen(false);
     };
 
@@ -249,20 +279,15 @@ const Units: React.FC<UnitsProps> = ({
                         />
                     </div>
 
-                    {/* Condominium Filter */}
-                    <div className="relative">
-                        <select
-                            value={selectedCondoFilter}
-                            onChange={(e) => setSelectedCondoFilter(e.target.value)}
-                            className="appearance-none bg-slate-50 border border-slate-100 rounded-2xl px-6 py-3 pr-10 text-sm font-bold text-slate-700 outline-none cursor-pointer hover:bg-slate-100 transition-all"
-                        >
-                            <option value="all">Tutti i Condomini</option>
-                            {condos.map(condo => (
-                                <option key={condo.id} value={condo.id}>{condo.name}</option>
-                            ))}
-                        </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-                    </div>
+                    {/* Indicatore Filtro Globale */}
+                    {selectedCondoId !== 'all' && (
+                        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3">
+                            <Building2 className="w-4 h-4 text-emerald-600" />
+                            <span className="text-sm font-bold text-emerald-700">
+                                {condos.find(c => c.id === selectedCondoId)?.name}
+                            </span>
+                        </div>
+                    )}
 
                     {/* New Unit Button */}
                     <button
@@ -585,27 +610,111 @@ const Units: React.FC<UnitsProps> = ({
                                     </select>
                                 </div>
 
-                                <div className="space-y-2">
+                                <div className="space-y-4">
                                     <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
                                         <UserCheck className="w-4 h-4 text-emerald-500" />
                                         Inquilino (opzionale)
                                     </label>
-                                    <select
-                                        value={unitForm.tenantId || ''}
-                                        onChange={(e) => setUnitForm({
-                                            ...unitForm,
-                                            tenantId: e.target.value || undefined,
-                                            isRented: !!e.target.value
-                                        })}
-                                        className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
-                                    >
-                                        <option value="">-- Nessun Inquilino --</option>
-                                        {people.filter(p => p.role === 'Inquilino').map(person => (
-                                            <option key={person.id} value={person.id}>
-                                                {person.firstName} {person.lastName} - {person.fiscalCode}
-                                            </option>
-                                        ))}
-                                    </select>
+
+                                    {/* Opzione: Seleziona esistente o inserisci nuovo */}
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setUnitForm({ ...unitForm, tenantId: undefined })}
+                                            className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold transition-all ${!unitForm.tenantId
+                                                ? 'bg-emerald-500 text-white'
+                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                }`}
+                                        >
+                                            Nessun Inquilino
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (!unitForm.tenantId) {
+                                                    setUnitForm({ ...unitForm, tenantId: 'new' });
+                                                }
+                                            }}
+                                            className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold transition-all ${unitForm.tenantId === 'new'
+                                                ? 'bg-emerald-500 text-white'
+                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                }`}
+                                        >
+                                            Inserisci Nuovo
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (people.filter(p => p.role === 'Inquilino').length > 0) {
+                                                    setUnitForm({ ...unitForm, tenantId: people.filter(p => p.role === 'Inquilino')[0]?.id });
+                                                }
+                                            }}
+                                            className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold transition-all ${unitForm.tenantId && unitForm.tenantId !== 'new'
+                                                ? 'bg-emerald-500 text-white'
+                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                }`}
+                                        >
+                                            Seleziona Esistente
+                                        </button>
+                                    </div>
+
+                                    {/* Se seleziona esistente */}
+                                    {unitForm.tenantId && unitForm.tenantId !== 'new' && (
+                                        <select
+                                            value={unitForm.tenantId || ''}
+                                            onChange={(e) => setUnitForm({
+                                                ...unitForm,
+                                                tenantId: e.target.value || undefined,
+                                                isRented: !!e.target.value
+                                            })}
+                                            className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                                        >
+                                            <option value="">-- Seleziona Inquilino --</option>
+                                            {people.filter(p => p.role === 'Inquilino').map(person => (
+                                                <option key={person.id} value={person.id}>
+                                                    {person.firstName} {person.lastName} - {person.fiscalCode}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
+
+                                    {/* Se inserisce nuovo inquilino */}
+                                    {unitForm.tenantId === 'new' && (
+                                        <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 space-y-3">
+                                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Dati Inquilino</p>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Nome *"
+                                                    value={tenantInfo.firstName}
+                                                    onChange={(e) => setTenantInfo({ ...tenantInfo, firstName: e.target.value })}
+                                                    className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Cognome *"
+                                                    value={tenantInfo.lastName}
+                                                    onChange={(e) => setTenantInfo({ ...tenantInfo, lastName: e.target.value })}
+                                                    className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                                                />
+                                            </div>
+                                            <input
+                                                type="email"
+                                                placeholder="Email"
+                                                value={tenantInfo.email}
+                                                onChange={(e) => setTenantInfo({ ...tenantInfo, email: e.target.value })}
+                                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                                            />
+                                            <input
+                                                type="tel"
+                                                placeholder="Telefono"
+                                                value={tenantInfo.phone}
+                                                onChange={(e) => setTenantInfo({ ...tenantInfo, phone: e.target.value })}
+                                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                                            />
+                                            <p className="text-xs text-slate-500 italic">ℹ️ Informazioni per uso interno dell'amministratore</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

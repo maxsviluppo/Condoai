@@ -8,7 +8,6 @@ import {
   MessageSquare,
   Truck,
   FileText,
-  Mic,
   Wrench,
   AlertOctagon,
   LineChart,
@@ -61,7 +60,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     <div className="w-64 bg-slate-800 text-slate-100 h-screen flex flex-col fixed left-0 top-0 z-30">
       <div className="p-6">
         <h1 className="text-2xl font-bold text-emerald-400 flex items-center gap-2">
-          <Mic className="w-6 h-6" /> DomusAI
+          <Building2 className="w-6 h-6" /> DomusAI
         </h1>
         <p className="text-xs text-slate-400 mt-1 uppercase tracking-widest">Gestione Intelligente</p>
       </div>

@@ -51,38 +51,38 @@ export interface AIAction {
 
 export interface Transaction {
   id: string;
+  type: 'Entrata' | 'Uscita';
+  amount: number;
   date: string;
   description: string;
-  amount: number;
-  category: 'Spese Generali' | 'Acqua' | 'Riscaldamento' | 'Manutenzione' | 'Amministrazione';
-  status: 'Pagato' | 'In sospeso' | 'Scaduto';
+  category: string;
 }
 
 export interface Message {
   id: string;
   sender: string;
-  text: string;
-  timestamp: string;
-  category: 'Urgente' | 'Informativo' | 'Social' | 'Inutile';
-  summary?: string;
+  subject: string;
+  content: string;
+  date: string;
+  read: boolean;
 }
 
 export interface Assembly {
   id: string;
-  title: string;
   date: string;
-  location: string;
-  status: 'Pianificata' | 'Conclusa';
-  agenda: string[];
+  type: 'Ordinaria' | 'Straordinaria';
+  status: 'Programmata' | 'Completata';
+  topics: string[];
+  attendees?: number;
 }
 
 export interface Person {
   id: string;
   firstName: string;
   lastName: string;
-  email: string;
+  email?: string;
   pec?: string;
-  phone: string;
+  phone?: string;
   fiscalCode: string;
   residenceAddress?: string;
   role: 'Proprietario' | 'Inquilino' | 'Comproprietario';
@@ -101,6 +101,12 @@ export interface Unit {
   millesimals: Record<string, number>; // Tabella -> valore millesimale
   ownerId: string; // ID del proprietario
   tenantId?: string; // ID dell'inquilino (opzionale)
+  tenantInfo?: { // Dati inquilino per uso amministratore (se non in anagrafica)
+    firstName: string;
+    lastName: string;
+    email?: string;
+    phone?: string;
+  };
   isRented?: boolean; // Flag per indicare se è affittato
 }
 
@@ -149,4 +155,44 @@ export interface Condominium {
   // Legacy/Compatibilità
   cadastralData?: string;
   totalUnits: number; // Manteniamo per compatibilità, uguale a numberOfUnits
+}
+
+// Fornitore
+export interface Supplier {
+  id: string;
+  companyName: string; // Ragione Sociale
+  category: 'Idraulico' | 'Elettricista' | 'Pulizie' | 'Manutenzione' | 'Amministrazione' | 'Assicurazioni' | 'Altro';
+  contactPerson?: string; // Referente
+  phone?: string;
+  email?: string;
+  vatNumber?: string; // P. IVA
+}
+
+// Spesa/Uscita
+export interface Expense {
+  id: string;
+  condoId: string; // Condominio di riferimento
+  type: 'Uscita'; // Sempre "Uscita" per questo tipo
+
+  // Importi
+  netAmount: number; // Netto Pagato
+  accessoryExpenses: number; // Spese Accessorie
+  withholdingTax: number; // Ritenute d'Acconto
+  totalAmount: number; // Totale Spesa (calcolato automaticamente)
+
+  // Dettagli
+  date: string; // Data
+  category: 'Manutenzione Ordinaria' | 'Manutenzione Straordinaria' | 'Pulizia' | 'Energia Elettrica' | 'Riscaldamento' | 'Acqua' | 'Amministrazione' | 'Assicurazioni' | 'Altro';
+  paymentMethod: 'Bonifico' | 'Assegno' | 'Contanti' | 'Carta' | 'RID' | 'Altro';
+  supplierId: string; // ID Fornitore
+
+  // Ripartizione Millesimale
+  millesimalDistribution: Record<string, number>; // Tabella -> percentuale (deve sommare 100%)
+
+  // Fattura
+  invoiceNumber?: string;
+  isPaid: boolean; // Già pagato
+
+  // Note
+  description?: string;
 }

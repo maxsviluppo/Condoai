@@ -131,26 +131,27 @@ const App: React.FC = () => {
           units={units}
           condos={condos}
           people={people}
+          selectedCondoId={selectedCondoId}
           onAddUnit={addUnit}
           onUpdateUnit={updateUnit}
           onDeleteUnit={deleteUnit}
         />;
 
       case AppSection.EXPENSES:
-        return <Expenses />;
+        return <Expenses selectedCondoId={selectedCondoId} condos={condos} />;
 
       case AppSection.INCOME:
-        return <Income />;
+        return <Income selectedCondoId={selectedCondoId} condos={condos} />;
 
       case AppSection.BUDGET:
-        return <Budget />;
+        return <Budget selectedCondoId={selectedCondoId} condos={condos} />;
 
       case AppSection.ASSEMBLIES:
-        return <Assemblies />;
+        return <Assemblies selectedCondoId={selectedCondoId} condos={condos} />;
 
       case AppSection.COMMUNICATIONS:
       case AppSection.RESIDENTS:
-        return <Communication />;
+        return <Communication selectedCondoId={selectedCondoId} condos={condos} />;
 
       case AppSection.REPORTS:
       case AppSection.MAINTENANCE:
@@ -160,7 +161,7 @@ const App: React.FC = () => {
         return <div className="text-center py-20 text-slate-400">Sezione Fornitori in sviluppo</div>;
 
       case AppSection.DOCUMENTS:
-        return <Documents />;
+        return <Documents selectedCondoId={selectedCondoId} condos={condos} />;
 
       // Legacy sections
       case AppSection.ACCOUNTING:
