@@ -20,7 +20,8 @@ export enum AppSection {
   MAINTENANCE = 'MAINTENANCE',
   EMERGENCY = 'EMERGENCY',
   ANALYTICS = 'ANALYTICS',
-  LEGAL = 'LEGAL'
+  LEGAL = 'LEGAL',
+  SETTINGS = 'SETTINGS'
 }
 
 export interface Document {

@@ -16,8 +16,9 @@ import Expenses from './components/Expenses';
 import Income from './components/Income';
 import Budget from './components/Budget';
 import Units from './components/Units';
-import { AppSection, MaintenanceRequest, Condominium, Person, Unit } from './types';
-import { Bell, Search, Settings, Building2, ChevronDown } from 'lucide-react';
+import Settings from './components/Settings';
+import { AppSection, MaintenanceRequest, Condominium, Person, Unit, Expense, Payment } from './types';
+import { Bell, Search, Settings as SettingsIcon, Building2, ChevronDown } from 'lucide-react';
 
 const App: React.FC = () => {
   const [currentSection, setCurrentSection] = useState<AppSection>(AppSection.DASHBOARD);
@@ -102,6 +103,20 @@ const App: React.FC = () => {
     { id: '2', subject: 'Lampadina fulminata', location: 'Ingresso B', urgency: 'Bassa', status: 'Aperta', date: '2023-10-09', description: 'Sostituzione plafoniera.' }
   ]);
 
+  const [expenses, setExpenses] = useState<Expense[]>([
+    { id: 'd1', date: '2026-01-03', description: '- Fatt. 22', condoId: '1', category: 'Pulizia', millesimalDistribution: { 'B': 100 }, netAmount: 1000.00, accessoryExpenses: 2.00, withholdingTax: 100.00, totalAmount: 1102.00, type: 'Uscita', paymentMethod: 'Bonifico', supplierId: 's1', isPaid: true },
+    { id: 'd2', date: '2026-01-03', description: '- Fatt. 44', condoId: '1', category: 'Manutenzione Ordinaria', millesimalDistribution: { 'A': 50, 'B': 50 }, netAmount: 1000.00, accessoryExpenses: 0.00, withholdingTax: 0.00, totalAmount: 1000.00, type: 'Uscita', paymentMethod: 'Bonifico', supplierId: 's1', isPaid: true },
+    { id: 'd3', date: '2026-01-03', description: '- Fatt. 40', condoId: '1', category: 'Assicurazioni', millesimalDistribution: { 'A': 100 }, netAmount: 1000.00, accessoryExpenses: 2.00, withholdingTax: 0.00, totalAmount: 1002.00, type: 'Uscita', paymentMethod: 'Bonifico', supplierId: 's1', isPaid: true },
+    { id: 'd4', date: '2026-01-03', description: '- Fatt. 88', condoId: '2', category: 'Altro', millesimalDistribution: { 'A': 100 }, netAmount: 900.00, accessoryExpenses: 2.00, withholdingTax: 58.00, totalAmount: 844.00, type: 'Uscita', paymentMethod: 'Bonifico', supplierId: 's1', isPaid: true },
+    { id: 'd5', date: '2026-01-02', description: '- Fatt. 30', condoId: '1', category: 'Altro', millesimalDistribution: { 'C': 100 }, netAmount: 500.00, accessoryExpenses: 0.00, withholdingTax: 48.00, totalAmount: 548.00, type: 'Uscita', paymentMethod: 'Bonifico', supplierId: 's1', isPaid: true },
+    { id: 'd6', date: '2026-01-02', description: '- Fatt. 45', condoId: '2', category: 'Energia Elettrica', millesimalDistribution: { 'B': 80, 'A': 20 }, netAmount: 500.00, accessoryExpenses: 2.00, withholdingTax: 56.00, totalAmount: 558.00, type: 'Uscita', paymentMethod: 'Bonifico', supplierId: 's1', isPaid: true },
+    { id: 'd7', date: '2026-01-01', description: '- Fatt. 01', condoId: '1', category: 'Amministrazione', millesimalDistribution: { 'A': 100 }, netAmount: 1560.00, accessoryExpenses: 0.00, withholdingTax: 0.00, totalAmount: 1560.00, type: 'Uscita', paymentMethod: 'Bonifico', supplierId: 's1', isPaid: true },
+  ]);
+
+  const [payments, setPayments] = useState<Payment[]>([
+    { id: 'p1', unitId: 'u1', condoId: '1', year: 2026, month: 1, expectedAmount: 100, paidAmount: 57, status: 'partial', paymentDate: '2026-01-05', paymentMethod: 'Bonifico' }
+  ]);
+
   const selectedCondoName = useMemo(() => {
     if (selectedCondoId === 'all') return 'Tutti i Condomini';
     return condos.find(c => c.id === selectedCondoId)?.name || 'Seleziona...';
@@ -138,13 +153,13 @@ const App: React.FC = () => {
         />;
 
       case AppSection.EXPENSES:
-        return <Expenses selectedCondoId={selectedCondoId} condos={condos} />;
+        return <Expenses selectedCondoId={selectedCondoId} condos={condos} expenses={expenses} setExpenses={setExpenses} />;
 
       case AppSection.INCOME:
-        return <Income selectedCondoId={selectedCondoId} condos={condos} units={units} people={people} />;
+        return <Income selectedCondoId={selectedCondoId} condos={condos} units={units} people={people} payments={payments} setPayments={setPayments} />;
 
       case AppSection.BUDGET:
-        return <Budget selectedCondoId={selectedCondoId} condos={condos} />;
+        return <Budget selectedCondoId={selectedCondoId} condos={condos} expenses={expenses} payments={payments} units={units} people={people} />;
 
       case AppSection.ASSEMBLIES:
         return <Assemblies selectedCondoId={selectedCondoId} condos={condos} />;
@@ -175,6 +190,9 @@ const App: React.FC = () => {
 
       case AppSection.ANALYTICS:
         return <Analytics />;
+
+      case AppSection.SETTINGS:
+        return <Settings />;
 
       default:
         return <Dashboard selectedCondoId={selectedCondoId} />;
@@ -239,7 +257,12 @@ const App: React.FC = () => {
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
             </button>
-            <button className="p-2 text-slate-500 hover:text-emerald-600"><Settings className="w-5 h-5" /></button>
+            <button
+              onClick={() => setCurrentSection(AppSection.SETTINGS)}
+              className="p-2 text-slate-500 hover:text-emerald-600 transition-colors"
+            >
+              <SettingsIcon className="w-5 h-5" />
+            </button>
             <div className="h-8 w-px bg-slate-200 mx-2" />
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-xs font-bold text-white shadow-lg">SR</div>

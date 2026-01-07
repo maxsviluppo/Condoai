@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, Dispatch, SetStateAction } from 'react';
 import {
     TrendingDown,
     Plus,
@@ -21,10 +21,12 @@ import { Expense, Supplier, Condominium } from '../types';
 interface ExpensesProps {
     selectedCondoId: string;
     condos: Condominium[];
+    expenses: Expense[];
+    setExpenses: Dispatch<SetStateAction<Expense[]>>;
 }
 
-const Expenses: React.FC<ExpensesProps> = ({ selectedCondoId, condos }) => {
-    const [expenses, setExpenses] = useState<Expense[]>([]);
+const Expenses: React.FC<ExpensesProps> = ({ selectedCondoId, condos, expenses, setExpenses }) => {
+    // const [expenses, setExpenses] = useState<Expense[]>([]); // Lifted to App.tsx
     const [suppliers, setSuppliers] = useState<Supplier[]>([
         { id: 's1', companyName: 'Elettricità Verdi SRL', category: 'Elettricista', phone: '02 1234567', email: 'info@elettricitaverdi.it', vatNumber: 'IT12345678901' }
     ]);

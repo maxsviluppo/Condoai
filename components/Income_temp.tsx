@@ -1,4 +1,4 @@
-import React, { useState, useMemo, Dispatch, SetStateAction } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Calendar, TrendingUp, CheckCircle, AlertTriangle, XCircle, Euro } from 'lucide-react';
 import { Unit, Condominium, Payment, Person } from '../types';
 
@@ -7,13 +7,11 @@ interface IncomeProps {
     condos: Condominium[];
     units: Unit[];
     people: Person[];
-    payments: Payment[];
-    setPayments: Dispatch<SetStateAction<Payment[]>>;
 }
 
-const Income: React.FC<IncomeProps> = ({ selectedCondoId, condos, units, people, payments, setPayments }) => {
+const Income: React.FC<IncomeProps> = ({ selectedCondoId, condos, units, people }) => {
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-    // const [payments, setPayments] = useState<Payment[]>([]); // Lifted to App.tsx
+    const [payments, setPayments] = useState<Payment[]>([]);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [selectedPayment, setSelectedPayment] = useState<{ unitId: string; month: number } | null>(null);
     const [paymentForm, setPaymentForm] = useState({
@@ -265,142 +263,3 @@ const Income: React.FC<IncomeProps> = ({ selectedCondoId, condos, units, people,
                                                 const paidAmount = payment?.paidAmount || 0;
                                                 const remaining = expectedAmount - paidAmount;
 
-                                                return (
-                                                    <td key={monthIndex} className="px-4 py-4">
-                                                        <button
-                                                            onClick={() => openPaymentModal(unit.id, monthIndex + 1)}
-                                                            className={`w-full p-3 rounded-xl border-2 transition-all hover:scale-105 ${payment?.status === 'paid'
-                                                                ? 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
-                                                                : payment?.status === 'partial'
-                                                                    ? 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100'
-                                                                    : 'bg-red-50 border-red-200 hover:bg-red-100'
-                                                                }`}
-                                                        >
-                                                            <div className="flex flex-col items-center gap-1">
-                                                                {payment?.status === 'paid' ? (
-                                                                    <>
-                                                                        <CheckCircle className="w-5 h-5 text-emerald-600" />
-                                                                        <span className="text-xs font-bold text-emerald-700">Pagato</span>
-                                                                        <span className="text-xs text-emerald-600">€ {paidAmount.toFixed(2)}</span>
-                                                                    </>
-                                                                ) : payment?.status === 'partial' ? (
-                                                                    <>
-                                                                        <AlertTriangle className="w-5 h-5 text-yellow-600" />
-                                                                        <span className="text-xs font-bold text-yellow-700">Acconto</span>
-                                                                        <span className="text-xs text-yellow-600">€ {paidAmount.toFixed(2)}</span>
-                                                                        <span className="text-xs font-bold text-red-600 mt-1">Residuo: € {remaining.toFixed(2)}</span>
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <XCircle className="w-5 h-5 text-red-600" />
-                                                                        <span className="text-xs font-bold text-red-700">Non Pagato</span>
-                                                                    </>
-                                                                )}
-                                                            </div>
-                                                        </button>
-                                                    </td>
-                                                );
-                                            })}
-                                        </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* Payment Modal */}
-            {isPaymentModalOpen && selectedPayment && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md">
-                        {/* Header */}
-                        <div className="p-6 border-b border-slate-100">
-                            <h3 className="text-xl font-black text-slate-800">Registra Pagamento</h3>
-                            <p className="text-sm text-slate-500 mt-1">
-                                {months[selectedPayment.month - 1]} {selectedYear}
-                            </p>
-                        </div>
-
-                        {/* Content */}
-                        <div className="p-6 space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700">Importo Pagato *</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={paymentForm.amount}
-                                    onChange={(e) => setPaymentForm({ ...paymentForm, amount: parseFloat(e.target.value) || 0 })}
-                                    className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700">Data Pagamento</label>
-                                <input
-                                    type="date"
-                                    value={paymentForm.paymentDate}
-                                    onChange={(e) => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })}
-                                    className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700">Metodo Pagamento</label>
-                                <select
-                                    value={paymentForm.paymentMethod}
-                                    onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value as Payment['paymentMethod'] })}
-                                    className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
-                                >
-                                    <option value="Bonifico">Bonifico</option>
-                                    <option value="Assegno">Assegno</option>
-                                    <option value="Contanti">Contanti</option>
-                                    <option value="Carta">Carta</option>
-                                    <option value="RID">RID</option>
-                                    <option value="Altro">Altro</option>
-                                </select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700">Note</label>
-                                <textarea
-                                    value={paymentForm.notes}
-                                    onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
-                                    rows={3}
-                                    className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-5 py-4 text-sm font-medium focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all resize-none"
-                                    placeholder="Note aggiuntive..."
-                                />
-                            </div>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="p-6 border-t border-slate-100 flex justify-between gap-4">
-                            <button
-                                onClick={handleDeletePayment}
-                                className="px-6 py-3 bg-red-100 text-red-700 rounded-2xl hover:bg-red-200 transition-all font-bold"
-                            >
-                                Elimina
-                            </button>
-                            <div className="flex gap-4">
-                                <button
-                                    onClick={() => setIsPaymentModalOpen(false)}
-                                    className="px-6 py-3 bg-slate-100 text-slate-700 rounded-2xl hover:bg-slate-200 transition-all font-bold"
-                                >
-                                    Annulla
-                                </button>
-                                <button
-                                    onClick={handleSavePayment}
-                                    className="px-6 py-3 bg-emerald-500 text-white rounded-2xl hover:bg-emerald-600 transition-all shadow-lg font-bold"
-                                >
-                                    Salva
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
-export default Income;
