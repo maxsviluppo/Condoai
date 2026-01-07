@@ -80,11 +80,12 @@ export interface Person {
 
 export interface Unit {
   id: string;
+  condoId: string; // Collegamento obbligatorio al condominio
   internal: string;
   staircase?: string;
   floor: string;
   subalterno?: string;
-  millesimals: Record<string, number>; // Gestione tabelle A, B, C...
+  millesimals: Record<string, number>; 
   ownerId: string;
   tenantId?: string;
   type: 'Appartamento' | 'Box' | 'Cantina' | 'Negozio';

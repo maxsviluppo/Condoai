@@ -60,7 +60,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
       
       <nav className="flex-1 mt-2 overflow-y-auto custom-scrollbar">
-        {/* NEW: Primary Category - Condominium Selector */}
         <div className="px-4 mb-6">
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2 px-2">Focus Attivo</p>
           <div className="relative">
@@ -80,13 +79,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                   {selectedCondoId === 'all' ? 'Tutti i Condomini' : selectedCondo?.name}
                 </p>
                 <p className="text-[10px] text-slate-500 truncate leading-none mt-0.5">
-                  {selectedCondoId === 'all' ? 'Vista aggregata' : selectedCondo?.address}
+                  {selectedCondoId === 'all' ? 'Vista aggregata' : selectedCondo?.city}
                 </p>
               </div>
               <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isCondoMenuOpen ? 'rotate-180' : ''}`} />
             </button>
 
-            {/* Dropdown in Sidebar */}
             {isCondoMenuOpen && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                 <button 

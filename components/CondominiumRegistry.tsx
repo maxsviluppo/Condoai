@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Building2, 
   Users, 
@@ -14,34 +14,46 @@ import {
   Edit2,
   Trash2,
   Mail,
-  UserCircle,
-  Phone,
   Smartphone,
-  Link2,
-  ExternalLink,
-  Info,
   ShieldCheck,
   PlusCircle,
   Database,
-  UserSearch,
-  UserRoundPlus
+  UserRoundPlus,
+  ClipboardList,
+  Hash,
+  UserMinus,
+  Copy,
+  Info,
+  ChevronRight,
+  Archive,
+  Table,
+  Layers,
+  Trash
 } from 'lucide-react';
 import { Condominium, Unit, Person } from '../types';
 
 interface CondominiumRegistryProps {
   initialCondoId?: string;
   condos: Condominium[];
+  people: Person[];
+  units: Unit[];
   onAddCondo: (condo: Condominium) => void;
   onUpdateCondo: (condo: Condominium) => void;
   onDeleteCondo: (id: string) => void;
+  setPeople: React.Dispatch<React.SetStateAction<Person[]>>;
+  setUnits: React.Dispatch<React.SetStateAction<Unit[]>>;
 }
 
 const CondominiumRegistry: React.FC<CondominiumRegistryProps> = ({ 
   initialCondoId = 'all', 
   condos, 
+  people,
+  units,
   onAddCondo,
   onUpdateCondo,
-  onDeleteCondo 
+  onDeleteCondo,
+  setPeople,
+  setUnits
 }) => {
   const [selectedCondo, setSelectedCondo] = useState<Condominium | null>(
     initialCondoId === 'all' ? (condos.length > 0 ? condos[0] : null) : condos.find(c => c.id === initialCondoId) || condos[0]
@@ -56,76 +68,92 @@ const CondominiumRegistry: React.FC<CondominiumRegistryProps> = ({
   const [isPersonModalOpen, setIsPersonModalOpen] = useState(false);
   const [isEditingPerson, setIsEditingPerson] = useState(false);
   const [currentPersonId, setCurrentPersonId] = useState<string | null>(null);
-
   const [isUnitModalOpen, setIsUnitModalOpen] = useState(false);
 
-  // Unit assignment strategy
-  const [unitStrategy, setUnitStrategy] = useState<'archive' | 'new' | 'none'>('none');
-  const [ownerStrategy, setOwnerStrategy] = useState<'existing' | 'new' | 'none'>('none');
+  // Advanced Flow States
+  const [isTenantActive, setIsTenantActive] = useState(false);
+  const [unitStrategy, setUnitStrategy] = useState<'archive' | 'new' | 'none'>('new');
+
+  // Form State for Millesimals (Local Helper)
+  const [millesimalEntries, setMillesimalEntries] = useState<{label: string, value: number}[]>([{label: 'A', value: 0}]);
 
   // Forms State
   const [condoForm, setCondoForm] = useState({ 
     name: '', street: '', streetNumber: '', cap: '', city: '', province: '', fiscalCode: '', cadastralData: '' 
   });
   
-  const [personForm, setPersonForm] = useState<Partial<Person>>({ 
-    firstName: '', lastName: '', email: '', pec: '', phone: '', fiscalCode: '', residenceAddress: '', role: 'Proprietario' 
+  const [ownerForm, setOwnerForm] = useState({ 
+    firstName: '', lastName: '', email: '', phone: '', fiscalCode: '', 
+    street: '', civico: '', cap: '', city: '', prov: '', role: 'Proprietario' as const
   });
 
-  const [linkedOwnerForm, setLinkedOwnerForm] = useState<Partial<Person>>({
-    firstName: '', lastName: '', email: '', phone: '', residenceAddress: '', role: 'Proprietario'
+  const [tenantForm, setTenantForm] = useState({
+    firstName: '', lastName: '', email: '', phone: '', fiscalCode: '',
+    street: '', civico: '', cap: '', city: '', prov: '', role: 'Inquilino' as const
   });
 
   const [unitForm, setUnitForm] = useState<Partial<Unit>>({ 
-    internal: '', staircase: '', floor: '', subalterno: '', millesimals: { 'A': 0 }, type: 'Appartamento' 
+    internal: '', staircase: '', floor: '', subalterno: '', millesimals: {}, type: 'Appartamento' 
   });
 
   const [tempUnitId, setTempUnitId] = useState<string>('');
-  const [tempOwnerId, setTempOwnerId] = useState<string>('');
-
-  // Data State (Mock)
-  const [units, setUnits] = useState<Unit[]>([
-    { id: 'u1', internal: '1A', staircase: 'A', floor: '1', subalterno: '12', millesimals: { 'A': 45.500, 'B': 20.000 }, ownerId: 'p1', tenantId: 'p2', type: 'Appartamento' },
-    { id: 'u2', internal: '1B', staircase: 'A', floor: '1', subalterno: '13', millesimals: { 'A': 38.200 }, ownerId: 'p2', type: 'Appartamento' },
-  ]);
-
-  const [people, setPeople] = useState<Person[]>([
-    { id: 'p1', firstName: 'Mario', lastName: 'Rossi', email: 'mario.rossi@email.com', pec: 'mario.rossi@pec.it', phone: '333 1234567', fiscalCode: 'RSSMRA80A01F205Z', role: 'Proprietario' },
-    { id: 'p2', firstName: 'Laura', lastName: 'Bianchi', email: 'laura.b@email.com', phone: '333 7654321', fiscalCode: 'BNCHLRA85B41H501U', role: 'Inquilino' },
-  ]);
-
   const [unitSearch, setUnitSearch] = useState('');
   const [personSearch, setPersonSearch] = useState('');
 
+  // FILTRAGGIO CRUCIALE: Mostra solo le unità appartenenti al condominio selezionato
   const filteredUnits = useMemo(() => {
     const q = unitSearch.toLowerCase();
-    return units.filter(u => u.internal.toLowerCase().includes(q) || u.subalterno?.toLowerCase().includes(q));
-  }, [units, unitSearch]);
+    if (!selectedCondo) return [];
+    return units.filter(u => 
+      u.condoId === selectedCondo.id && 
+      (u.internal.toLowerCase().includes(q) || (u.subalterno?.toLowerCase() || '').includes(q))
+    );
+  }, [units, unitSearch, selectedCondo]);
 
   const filteredPeople = useMemo(() => {
     const q = personSearch.toLowerCase();
     return people.filter(p => `${p.firstName} ${p.lastName}`.toLowerCase().includes(q) || p.fiscalCode.toLowerCase().includes(q));
   }, [people, personSearch]);
 
-  const ownersList = useMemo(() => people.filter(p => p.role === 'Proprietario'), [people]);
+  // Handlers for dynamic millesimals
+  const addMillesimalRow = () => {
+    const nextLabel = String.fromCharCode(65 + millesimalEntries.length); // A, B, C...
+    setMillesimalEntries([...millesimalEntries, { label: nextLabel, value: 0 }]);
+  };
 
-  // Handlers
+  const removeMillesimalRow = (index: number) => {
+    setMillesimalEntries(millesimalEntries.filter((_, i) => i !== index));
+  };
+
+  const updateMillesimalRow = (index: number, field: 'label' | 'value', val: any) => {
+    const newEntries = [...millesimalEntries];
+    newEntries[index] = { ...newEntries[index], [field]: val };
+    setMillesimalEntries(newEntries);
+  };
+
+  const handleCopyCondoCadastral = () => {
+    if (selectedCondo?.cadastralData) {
+      setUnitForm(prev => ({ ...prev, subalterno: selectedCondo.cadastralData }));
+    }
+  };
+
   const openNewCondoModal = () => {
     setIsEditingCondo(false);
     setCondoForm({ name: '', street: '', streetNumber: '', cap: '', city: '', province: '', fiscalCode: '', cadastralData: '' });
     setIsCondoModalOpen(true);
   };
 
-  const openEditCondoModal = () => {
-    if (!selectedCondo) return;
+  const openEditCondoModal = (condoToEdit?: Condominium) => {
+    const target = condoToEdit || selectedCondo;
+    if (!target) return;
     setIsEditingCondo(true);
-    setCondoForm({ ...selectedCondo, cadastralData: selectedCondo.cadastralData || '' });
+    setCondoForm({ ...target, cadastralData: target.cadastralData || '' });
     setIsCondoModalOpen(true);
   };
 
   const handleSaveCondo = () => {
     if (!condoForm.name || !condoForm.fiscalCode || !condoForm.city) {
-      alert("Completare i campi obbligatori.");
+      alert("Completare i campi obbligatori del condominio.");
       return;
     }
     if (isEditingCondo && selectedCondo) {
@@ -140,74 +168,82 @@ const CondominiumRegistry: React.FC<CondominiumRegistryProps> = ({
     setIsCondoModalOpen(false);
   };
 
-  const openNewPersonModal = (role: 'Proprietario' | 'Inquilino' = 'Proprietario') => {
+  const openNewPersonModal = () => {
+    if (!selectedCondo) {
+        alert("Seleziona prima un condominio.");
+        return;
+    }
     setIsEditingPerson(false);
     setCurrentPersonId(null);
-    setPersonForm({ firstName: '', lastName: '', email: '', pec: '', phone: '', fiscalCode: '', residenceAddress: '', role });
-    setUnitStrategy('none');
-    setOwnerStrategy('none');
+    setIsTenantActive(false);
+    setUnitStrategy('new');
+    setMillesimalEntries([{label: 'A', value: 0}]);
+    setOwnerForm({ firstName: '', lastName: '', email: '', phone: '', fiscalCode: '', street: '', civico: '', cap: '', city: '', prov: '', role: 'Proprietario' });
+    setTenantForm({ firstName: '', lastName: '', email: '', phone: '', fiscalCode: '', street: '', civico: '', cap: '', city: '', prov: '', role: 'Inquilino' });
+    setUnitForm({ internal: '', staircase: '', floor: '', subalterno: '', millesimals: {}, type: 'Appartamento' });
     setTempUnitId('');
-    setTempOwnerId('');
-    setLinkedOwnerForm({ firstName: '', lastName: '', email: '', phone: '', residenceAddress: '', role: 'Proprietario' });
-    setUnitForm({ internal: '', staircase: '', floor: '', subalterno: '', millesimals: { 'A': 0 }, type: 'Appartamento' });
-    setIsPersonModalOpen(true);
-  };
-
-  const openEditPersonModal = (person: Person) => {
-    setIsEditingPerson(true);
-    setCurrentPersonId(person.id);
-    setPersonForm({ ...person });
-    setUnitStrategy('none');
-    setOwnerStrategy('none');
     setIsPersonModalOpen(true);
   };
 
   const handleSavePerson = () => {
-    if (!personForm.firstName || !personForm.lastName || !personForm.fiscalCode) {
-      alert("Completare Nome, Cognome e Codice Fiscale.");
+    if (!selectedCondo) return;
+    if (!ownerForm.firstName || !ownerForm.lastName || !ownerForm.fiscalCode) {
+      alert("ERRORE: I dati del Proprietario sono obbligatori.");
       return;
     }
 
-    const personId = isEditingPerson && currentPersonId ? currentPersonId : `p${Date.now()}`;
-    const newPerson: Person = { ...personForm, id: personId } as Person;
+    const ownerId = isEditingPerson && currentPersonId ? currentPersonId : `p_own_${Date.now()}`;
+    const newOwner: Person = { 
+        id: ownerId, 
+        firstName: ownerForm.firstName, 
+        lastName: ownerForm.lastName, 
+        email: ownerForm.email, 
+        phone: ownerForm.phone, 
+        fiscalCode: ownerForm.fiscalCode,
+        residenceAddress: `${ownerForm.street} ${ownerForm.civico}, ${ownerForm.cap} ${ownerForm.city} (${ownerForm.prov})`,
+        role: 'Proprietario' 
+    };
 
-    // 1. Save or Update Main Person
+    let tenantId = undefined;
+    if (isTenantActive && tenantForm.lastName && tenantForm.firstName) {
+        tenantId = `p_ten_${Date.now()}`;
+        const newTenant: Person = {
+            id: tenantId,
+            firstName: tenantForm.firstName,
+            lastName: tenantForm.lastName,
+            email: tenantForm.email,
+            phone: tenantForm.phone,
+            fiscalCode: tenantForm.fiscalCode,
+            residenceAddress: `${tenantForm.street} ${tenantForm.civico}, ${tenantForm.cap} ${tenantForm.city} (${tenantForm.prov})`,
+            role: 'Inquilino'
+        };
+        setPeople(prev => [...prev, newTenant]);
+    }
+
     if (isEditingPerson) {
-      setPeople(prev => prev.map(p => p.id === personId ? newPerson : p));
+        setPeople(prev => prev.map(p => p.id === ownerId ? newOwner : p));
     } else {
-      setPeople(prev => [...prev, newPerson]);
+        setPeople(prev => [...prev, newOwner]);
     }
 
-    // 2. Handle Linked Owner if Main is Tenant
-    let finalOwnerId = '';
-    if (newPerson.role === 'Inquilino' && !isEditingPerson) {
-        if (ownerStrategy === 'existing' && tempOwnerId) {
-            finalOwnerId = tempOwnerId;
-        } else if (ownerStrategy === 'new' && linkedOwnerForm.lastName) {
-            finalOwnerId = `p_owner_${Date.now()}`;
-            const newOwner: Person = { ...linkedOwnerForm, id: finalOwnerId, role: 'Proprietario' } as Person;
-            setPeople(prev => [...prev, newOwner]);
-        }
-    }
-
-    // 3. Handle Unit Association
-    const targetOwnerId = newPerson.role === 'Proprietario' ? personId : finalOwnerId;
-    const targetTenantId = newPerson.role === 'Inquilino' ? personId : undefined;
+    // Process Millesimals
+    const processedMillesimals: Record<string, number> = {};
+    millesimalEntries.forEach(entry => {
+      if (entry.label) processedMillesimals[entry.label] = entry.value;
+    });
 
     if (unitStrategy === 'archive' && tempUnitId) {
-      setUnits(prev => prev.map(u => 
-        u.id === tempUnitId 
-          ? { ...u, ownerId: targetOwnerId || u.ownerId, tenantId: targetTenantId || u.tenantId } 
-          : u
-      ));
+        setUnits(prev => prev.map(u => u.id === tempUnitId ? { ...u, ownerId: ownerId, tenantId: tenantId || u.tenantId } : u));
     } else if (unitStrategy === 'new' && unitForm.internal) {
-      const newUnit: Unit = { 
-        id: `u${Date.now()}`, 
-        ...unitForm as Unit, 
-        ownerId: targetOwnerId,
-        tenantId: targetTenantId
-      };
-      setUnits(prev => [...prev, newUnit]);
+        const newUnit: Unit = {
+            id: `u_new_${Date.now()}`,
+            condoId: selectedCondo.id, // INIEZIONE AUTOMATICA CONDOID
+            ...unitForm as Unit,
+            millesimals: processedMillesimals,
+            ownerId: ownerId,
+            tenantId: tenantId
+        };
+        setUnits(prev => [...prev, newUnit]);
     }
 
     setIsPersonModalOpen(false);
@@ -224,103 +260,106 @@ const CondominiumRegistry: React.FC<CondominiumRegistryProps> = ({
     }
   };
 
-  const handleSaveUnit = () => {
-    if (!unitForm.internal) return;
-    const unit: Unit = { id: `u${Date.now()}`, ...unitForm as Unit, ownerId: '', tenantId: undefined };
-    setUnits(prev => [...prev, unit]);
-    setIsUnitModalOpen(false);
-    setUnitForm({ internal: '', staircase: '', floor: '', subalterno: '', millesimals: { 'A': 0 }, type: 'Appartamento' });
-  };
-
   const unassignPerson = (unitId: string, role: 'owner' | 'tenant') => {
     setUnits(prev => prev.map(u => u.id === unitId ? (role === 'owner' ? { ...u, ownerId: '' } : { ...u, tenantId: undefined }) : u));
   };
 
-  const goToPersonAndFilter = (name: string) => {
-    setPersonSearch(name);
-    setActiveTab('people');
-  };
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-12 pb-20">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Anagrafica & Patrimonio</h2>
-          <p className="text-slate-500 text-sm">Gestione immobili, soggetti e millesimi.</p>
+          <h2 className="text-3xl font-black text-slate-800 tracking-tight">Anagrafica Patrimonio</h2>
+          <p className="text-slate-500 font-medium">Gestione unità e proprietari per il condominio {selectedCondo?.name || 'selezionato'}.</p>
         </div>
-        <button onClick={openNewCondoModal} className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-2xl hover:bg-slate-800 transition-all shadow-lg text-sm font-bold">
+        <button onClick={openNewCondoModal} className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-slate-800 transition-all shadow-xl text-sm font-black uppercase tracking-widest">
           <Building2 className="w-4 h-4 text-emerald-400" /> Nuovo Condominio
         </button>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <aside className="lg:col-span-1">
-          <div className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-100 min-h-full">
-            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Condomini</h3>
+          <div className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-100 sticky top-24">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+              <Archive className="w-3 h-3" /> Condomini Attivi
+            </h3>
             <div className="space-y-2">
               {condos.map(condo => (
-                <button key={condo.id} onClick={() => setSelectedCondo(condo)} className={`w-full text-left p-4 rounded-2xl transition-all flex items-center gap-3 group/item ${selectedCondo?.id === condo.id ? 'bg-slate-800 text-white shadow-xl' : 'hover:bg-slate-50 text-slate-600'}`}>
+                <button key={condo.id} onClick={() => setSelectedCondo(condo)} className={`w-full text-left p-4 rounded-2xl transition-all flex items-center gap-3 group/item ${selectedCondo?.id === condo.id ? 'bg-slate-800 text-white shadow-xl translate-x-1' : 'hover:bg-slate-50 text-slate-600'}`}>
                   <Building2 className={`w-4 h-4 ${selectedCondo?.id === condo.id ? 'text-emerald-400' : 'text-slate-400'}`} />
-                  <span className="font-bold text-sm truncate">{condo.name}</span>
+                  <span className="font-bold text-sm truncate uppercase tracking-tight">{condo.name}</span>
                 </button>
               ))}
             </div>
           </div>
         </aside>
 
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-3 space-y-8">
           {selectedCondo ? (
-            <div className="bg-white rounded-[40px] p-8 shadow-sm border border-slate-100 min-h-[600px]">
+            <div className="bg-white rounded-[40px] p-8 shadow-sm border border-slate-100 min-h-[500px]">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 pb-8 border-b border-slate-50">
                 <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 rounded-3xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 shadow-inner"><Building2 className="w-10 h-10" /></div>
+                  <div className="w-20 h-20 rounded-3xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 shadow-inner group-hover:scale-110 transition-transform"><Building2 className="w-10 h-10" /></div>
                   <div>
                     <div className="flex items-center gap-3">
                       <h3 className="text-3xl font-black text-slate-800 uppercase tracking-tight">{selectedCondo.name}</h3>
-                      <button onClick={openEditCondoModal} className="p-2 bg-slate-50 text-slate-400 hover:text-emerald-500 rounded-xl transition-all"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => openEditCondoModal()} className="p-2 bg-slate-50 text-slate-400 hover:text-emerald-500 rounded-xl transition-all"><Edit2 className="w-4 h-4" /></button>
                     </div>
-                    <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5 mt-1">
-                      <MapPin className="w-3.5 h-3.5 text-emerald-500" /> {selectedCondo.city} - {selectedCondo.street}
+                    <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5 mt-1 uppercase tracking-wider">
+                      <MapPin className="w-3.5 h-3.5 text-emerald-500" /> {selectedCondo.street} {selectedCondo.streetNumber}, {selectedCondo.cap} {selectedCondo.city}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="flex gap-8 mb-8 border-b border-slate-50">
-                <button onClick={() => setActiveTab('units')} className={`flex items-center gap-2 pb-4 text-sm font-black uppercase tracking-widest border-b-4 transition-all ${activeTab === 'units' ? 'border-emerald-500 text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
-                  <Home className="w-4 h-4" /> Unità & Millesimi
+              <div className="flex gap-10 mb-8 border-b border-slate-50">
+                <button onClick={() => setActiveTab('units')} className={`flex items-center gap-2 pb-4 text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all ${activeTab === 'units' ? 'border-emerald-500 text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+                  <Home className="w-4 h-4" /> Unità {selectedCondo.name}
                 </button>
-                <button onClick={() => setActiveTab('people')} className={`flex items-center gap-2 pb-4 text-sm font-black uppercase tracking-widest border-b-4 transition-all ${activeTab === 'people' ? 'border-emerald-500 text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
-                  <Users className="w-4 h-4" /> Anagrafica Persone
+                <button onClick={() => setActiveTab('people')} className={`flex items-center gap-2 pb-4 text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all ${activeTab === 'people' ? 'border-emerald-500 text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+                  <Users className="w-4 h-4" /> Anagrafica Soggetti
                 </button>
               </div>
 
               {activeTab === 'units' && (
-                <div className="space-y-4 animate-in fade-in duration-300">
+                <div className="space-y-6 animate-in fade-in duration-300">
                   <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-3xl border border-slate-100">
-                    <input type="text" placeholder="Cerca interno..." value={unitSearch} onChange={e => setUnitSearch(e.target.value)} className="flex-1 bg-transparent border-none text-sm font-medium outline-none" />
-                    <button onClick={() => setIsUnitModalOpen(true)} className="bg-emerald-500 text-white px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"><Plus className="w-3 h-3" /> Aggiungi Unità</button>
+                    <Search className="w-4 h-4 text-slate-300 ml-2" />
+                    <input type="text" placeholder="Cerca interno o subalterno..." value={unitSearch} onChange={e => setUnitSearch(e.target.value)} className="flex-1 bg-transparent border-none text-sm font-bold text-slate-600 outline-none" />
+                    <button onClick={() => { setMillesimalEntries([{label: 'A', value: 0}]); setIsUnitModalOpen(true); }} className="bg-emerald-500 text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg flex items-center gap-2 hover:bg-emerald-600 transition-all"><Plus className="w-3 h-3" /> Crea Unità</button>
                   </div>
                   <div className="overflow-hidden border border-slate-100 rounded-[32px] shadow-sm bg-white">
                     <table className="w-full text-left text-sm">
                       <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[10px] tracking-widest">
-                        <tr><th className="px-6 py-5">Interno</th><th className="px-6 py-5">Soggetti</th><th className="px-6 py-5">Millesimi A</th><th className="px-6 py-5 text-right">Azioni</th></tr>
+                        <tr><th className="px-8 py-5">Interno / Sub</th><th className="px-8 py-5">Soggetti</th><th className="px-8 py-5">Tabelle Millesimali</th><th className="px-8 py-5 text-right">Azioni</th></tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {filteredUnits.map(unit => {
+                        {filteredUnits.length > 0 ? filteredUnits.map(unit => {
                           const owner = people.find(p => p.id === unit.ownerId);
                           const tenant = people.find(p => p.id === unit.tenantId);
                           return (
                             <tr key={unit.id} className="hover:bg-slate-50/50 transition-colors group">
-                              <td className="px-6 py-4 font-black text-slate-800 uppercase tracking-tight">Int. {unit.internal}</td>
-                              <td className="px-6 py-4">
-                                <div className="space-y-1">
-                                  {owner && <div className="text-xs font-bold text-slate-700">Prop: {owner.lastName}</div>}
-                                  {tenant && <div className="text-xs font-bold text-emerald-600">Inq: {tenant.lastName}</div>}
+                              <td className="px-8 py-6">
+                                <div className="font-black text-slate-800 uppercase tracking-tight">Int. {unit.internal}</div>
+                                <div className="text-[10px] text-slate-400 font-mono mt-1">RIF: {unit.subalterno || '-'}</div>
+                              </td>
+                              <td className="px-8 py-6">
+                                <div className="space-y-1.5">
+                                  {owner && <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-indigo-500" /> {owner.lastName} {owner.firstName}</div>}
+                                  {tenant && <div className="text-xs font-bold text-emerald-600 flex items-center gap-1.5"><Info className="w-3.5 h-3.5" /> Inq: {tenant.lastName} {tenant.firstName}</div>}
+                                  {!owner && !tenant && <span className="text-xs text-slate-300 italic">Senza assegnatario</span>}
                                 </div>
                               </td>
-                              <td className="px-6 py-4 font-mono font-black text-slate-600">{(unit.millesimals['A'] || 0).toFixed(3)}</td>
-                              <td className="px-6 py-4 text-right">
+                              <td className="px-8 py-6">
+                                <div className="flex flex-wrap gap-2">
+                                  {Object.entries(unit.millesimals).map(([label, value]) => (
+                                    <div key={label} className="bg-slate-100 border border-slate-200 rounded-lg px-2 py-1 flex items-center gap-1.5">
+                                      <span className="text-[9px] font-black text-slate-400 uppercase">Tab {label}:</span>
+                                      <span className="text-[11px] font-mono font-bold text-slate-700">{(value as number).toFixed(3)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="px-8 py-6 text-right">
                                 <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
                                   <button onClick={() => unassignPerson(unit.id, 'owner')} className="p-2 text-red-400 hover:bg-red-50 rounded-xl" title="Scollega Soggetti"><UserMinus className="w-4 h-4" /></button>
                                   <button className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-xl"><Edit2 className="w-4 h-4" /></button>
@@ -328,7 +367,9 @@ const CondominiumRegistry: React.FC<CondominiumRegistryProps> = ({
                               </td>
                             </tr>
                           );
-                        })}
+                        }) : (
+                          <tr><td colSpan={4} className="p-16 text-center text-slate-300 font-bold uppercase tracking-widest italic">Nessuna unità censita per questo condominio</td></tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -336,30 +377,30 @@ const CondominiumRegistry: React.FC<CondominiumRegistryProps> = ({
               )}
 
               {activeTab === 'people' && (
-                <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="space-y-8 animate-in fade-in duration-300">
                   <div className="flex items-center gap-4 bg-slate-50 p-5 rounded-3xl border border-slate-100 group transition-all hover:bg-white hover:shadow-md">
-                    <Search className="w-5 h-5 text-slate-400" />
-                    <input type="text" placeholder="Cerca persona..." value={personSearch} onChange={e => setPersonSearch(e.target.value)} className="w-full bg-transparent border-none text-sm font-bold text-slate-700 outline-none" />
-                    <button onClick={() => openNewPersonModal()} className="bg-slate-900 text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><UserPlus className="w-4 h-4 text-emerald-400" /> Nuovo Soggetto</button>
+                    <Search className="w-5 h-5 text-slate-300" />
+                    <input type="text" placeholder="Cerca soggetto..." value={personSearch} onChange={e => setPersonSearch(e.target.value)} className="w-full bg-transparent border-none text-sm font-bold text-slate-700 outline-none" />
+                    <button onClick={openNewPersonModal} className="bg-slate-900 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg"><UserPlus className="w-4 h-4 text-emerald-400" /> Nuovo Soggetto</button>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {filteredPeople.map(person => (
                       <div key={person.id} className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm hover:shadow-xl transition-all relative group overflow-hidden">
                         <div className="flex items-center gap-6 mb-6">
-                          <div className="w-16 h-16 rounded-3xl bg-slate-50 text-slate-800 flex items-center justify-center font-black text-xl border border-slate-100 shadow-inner">{person.firstName[0]}{person.lastName[0]}</div>
+                          <div className="w-16 h-16 rounded-3xl bg-slate-50 text-slate-800 flex items-center justify-center font-black text-xl border border-slate-100 shadow-inner uppercase">{person.firstName?.[0] || '?'}{person.lastName?.[0] || '?'}</div>
                           <div className="min-w-0">
-                            <p className="font-black text-xl text-slate-800 truncate leading-tight">{person.firstName} {person.lastName}</p>
-                            <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded ${person.role === 'Proprietario' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}`}>{person.role}</span>
+                            <p className="font-black text-xl text-slate-800 truncate leading-tight uppercase tracking-tight">{person.firstName} {person.lastName}</p>
+                            <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded mt-1 inline-block ${person.role === 'Proprietario' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}`}>{person.role}</span>
                           </div>
                         </div>
-                        <div className="space-y-2 text-xs text-slate-500 font-medium bg-slate-50/50 p-4 rounded-3xl border border-slate-100">
-                           <p className="flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-slate-300" /> {person.email}</p>
-                           {person.phone && <p className="flex items-center gap-2"><Smartphone className="w-3.5 h-3.5 text-slate-300" /> {person.phone}</p>}
-                           {person.pec && <p className="flex items-center gap-2 text-indigo-400"><ShieldCheck className="w-3.5 h-3.5" /> {person.pec}</p>}
-                           <p className="flex items-center gap-2 font-mono text-[10px] text-slate-400 font-bold uppercase border-t border-slate-100 pt-2 mt-2"><Fingerprint className="w-3.5 h-3.5" /> {person.fiscalCode}</p>
+                        <div className="space-y-3 text-xs text-slate-500 font-medium bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
+                           <p className="flex items-center gap-2 font-mono text-[10px] text-slate-400 font-bold uppercase border-b border-slate-100 pb-2 mb-2"><Fingerprint className="w-3.5 h-3.5 text-slate-300" /> {person.fiscalCode}</p>
+                           <p className="flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-slate-300" /> {person.email || 'N/A'}</p>
+                           <p className="flex items-center gap-2"><Smartphone className="w-3.5 h-3.5 text-slate-300" /> {person.phone || 'N/A'}</p>
+                           <p className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-slate-300" /> {person.residenceAddress || 'N/A'}</p>
                         </div>
                         <div className="absolute right-6 top-6 opacity-0 group-hover:opacity-100 transition-all flex flex-col gap-2">
-                          <button onClick={() => openEditPersonModal(person)} className="p-3 text-slate-500 bg-white shadow-xl border border-slate-100 rounded-2xl hover:bg-slate-50 hover:text-emerald-500"><Edit2 className="w-4 h-4" /></button>
+                          <button onClick={() => { setIsEditingPerson(true); setCurrentPersonId(person.id); setOwnerForm({...person, role: person.role as any} as any); setIsPersonModalOpen(true); }} className="p-3 text-slate-500 bg-white shadow-xl border border-slate-100 rounded-2xl hover:bg-slate-50 hover:text-emerald-500"><Edit2 className="w-4 h-4" /></button>
                           <button onClick={() => deletePerson(person.id)} className="p-3 text-red-500 bg-white shadow-xl border border-slate-100 rounded-2xl hover:bg-red-50"><Trash2 className="w-4 h-4" /></button>
                         </div>
                       </div>
@@ -368,201 +409,242 @@ const CondominiumRegistry: React.FC<CondominiumRegistryProps> = ({
                 </div>
               )}
             </div>
-          ) : <div className="p-16 text-center text-slate-300 font-bold uppercase tracking-widest">Seleziona un condominio dalla sidebar per procedere.</div>}
+          ) : <div className="p-24 text-center text-slate-300 font-bold uppercase tracking-widest border-2 border-dashed border-slate-100 rounded-[40px]">Seleziona un condominio per procedere.</div>}
         </div>
       </div>
 
-      {/* MODAL: CONDOMINIO */}
-      {isCondoModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-all">
-          <div className="bg-white w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95">
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">{isEditingCondo ? 'Modifica' : 'Nuovo'} Condominio</h3>
-              <button onClick={() => setIsCondoModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full"><X className="w-6 h-6 text-slate-400" /></button>
-            </div>
-            <div className="p-8 grid grid-cols-2 gap-6">
-              <div className="col-span-2 space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase">Nome</label><input type="text" value={condoForm.name} onChange={e => setCondoForm({...condoForm, name: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold" /></div>
-              <div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase">Città</label><input type="text" value={condoForm.city} onChange={e => setCondoForm({...condoForm, city: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" /></div>
-              <div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase">Cod. Fiscale</label><input type="text" value={condoForm.fiscalCode} onChange={e => setCondoForm({...condoForm, fiscalCode: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-mono" /></div>
-            </div>
-            <div className="p-8 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
-              <button onClick={() => setIsCondoModalOpen(false)} className="px-6 py-3 font-bold text-slate-400 text-sm">Annulla</button>
-              <button onClick={handleSaveCondo} className="px-8 py-3 bg-slate-900 text-white rounded-2xl font-bold shadow-lg">Salva</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: PERSON (CREA/MODIFICA) POTENZIATO */}
-      {isPersonModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-all">
-          <div className="bg-white w-full max-w-3xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95">
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-emerald-400 shadow-lg">
-                  <UserPlus className="w-6 h-6" />
+      {/* REGISTRO GLOBALE IN BASSO */}
+      <section className="mt-16 bg-white rounded-[48px] p-10 shadow-sm border border-slate-100 animate-in slide-in-from-bottom-6">
+        <div className="flex items-center justify-between mb-10">
+            <div className="flex items-center gap-4">
+                <div className="p-3 bg-slate-900 text-emerald-400 rounded-2xl shadow-lg">
+                    <Table className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">{isEditingPerson ? 'Dettaglio Soggetto' : 'Nuova Anagrafica'}</h3>
+                <div>
+                    <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Registro Globale Amministrativo</h3>
+                    <p className="text-slate-400 text-sm font-medium">Anagrafica catastale e fiscale di tutti i condomini gestiti.</p>
+                </div>
+            </div>
+        </div>
+
+        <div className="overflow-hidden border border-slate-100 rounded-[40px] shadow-sm">
+            <table className="w-full text-left text-sm">
+                <thead className="bg-slate-900 text-white font-black uppercase text-[10px] tracking-[0.2em]">
+                    <tr>
+                        <th className="px-8 py-6">Condominio</th>
+                        <th className="px-8 py-6">Ubicazione</th>
+                        <th className="px-8 py-6">Codice Fiscale</th>
+                        <th className="px-8 py-6">Rif. Catastali (Fg/Part)</th>
+                        <th className="px-8 py-6 text-right">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                    {condos.map(c => (
+                        <tr key={c.id} className="hover:bg-slate-50 transition-colors group">
+                            <td className="px-8 py-6">
+                                <div className="font-black text-slate-800 uppercase tracking-tight text-base">{c.name}</div>
+                            </td>
+                            <td className="px-8 py-6">
+                                <div className="text-xs font-bold text-slate-600">{c.street} {c.streetNumber}</div>
+                                <div className="text-[10px] text-slate-400 font-black uppercase">{c.cap} {c.city} ({c.province})</div>
+                            </td>
+                            <td className="px-8 py-6">
+                                <div className="font-mono text-xs bg-slate-100 px-3 py-1 rounded-lg inline-block border border-slate-200">{c.fiscalCode}</div>
+                            </td>
+                            <td className="px-8 py-6">
+                                <div className="text-xs font-black text-indigo-600 uppercase tracking-wider">{c.cadastralData || 'Non inserito'}</div>
+                            </td>
+                            <td className="px-8 py-6 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                    <button onClick={() => openEditCondoModal(c)} className="p-3 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-2xl transition-all"><Edit2 className="w-4 h-4" /></button>
+                                    <button onClick={() => setSelectedCondo(c)} className="p-3 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-2xl transition-all"><ChevronRight className="w-5 h-5" /></button>
+                                </div>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+      </section>
+
+      {/* MODAL SOGGETTO */}
+      {isPersonModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md transition-all overflow-y-auto">
+          <div className="bg-white w-full max-w-4xl rounded-[48px] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 my-10 border border-slate-100">
+            <div className="p-10 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center text-emerald-400 shadow-2xl ring-4 ring-emerald-400/10">
+                  <UserPlus className="w-8 h-8" />
+                </div>
+                <div>
+                    <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Inserimento Anagrafica Patrimonio</h3>
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Condominio: {selectedCondo?.name}</p>
+                </div>
               </div>
-              <button onClick={() => setIsPersonModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full"><X className="w-6 h-6 text-slate-400" /></button>
+              <button onClick={() => setIsPersonModalOpen(false)} className="p-3 hover:bg-slate-100 rounded-full transition-all"><X className="w-8 h-8 text-slate-300" /></button>
             </div>
             
-            <div className="p-8 space-y-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
-              {/* Sezione Anagrafica Soggetto Principale */}
-              <div className="space-y-4">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                  <Users className="w-3.5 h-3.5" /> {personForm.role === 'Inquilino' ? 'Dati Inquilino' : 'Informazioni Soggetto'}
+            <div className="p-10 space-y-12 max-h-[70vh] overflow-y-auto custom-scrollbar">
+              <div className="space-y-8">
+                <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.3em] flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5" /> 1. PROPRIETARIO (PRINCIPALE)
                 </h4>
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nome</label><input type="text" value={personForm.firstName} onChange={e => setPersonForm({...personForm, firstName: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold focus:border-emerald-500 outline-none" /></div>
-                  <div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Cognome</label><input type="text" value={personForm.lastName} onChange={e => setPersonForm({...personForm, lastName: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold focus:border-emerald-500 outline-none" /></div>
-                  <div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Ruolo</label>
-                    <select value={personForm.role} onChange={e => setPersonForm({...personForm, role: e.target.value as any})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none">
-                      <option value="Proprietario">Proprietario</option>
-                      <option value="Inquilino">Inquilino</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Cod. Fiscale</label><input type="text" value={personForm.fiscalCode} onChange={e => setPersonForm({...personForm, fiscalCode: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-mono uppercase focus:border-emerald-500 outline-none" /></div>
+                <div className="grid grid-cols-2 gap-8">
+                  <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Nome</label><input type="text" value={ownerForm.firstName} onChange={e => setOwnerForm({...ownerForm, firstName: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold" /></div>
+                  <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Cognome</label><input type="text" value={ownerForm.lastName} onChange={e => setOwnerForm({...ownerForm, lastName: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold" /></div>
+                  <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Codice Fiscale</label><input type="text" value={ownerForm.fiscalCode} onChange={e => setOwnerForm({...ownerForm, fiscalCode: e.target.value.toUpperCase()})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-mono font-black" /></div>
                 </div>
               </div>
 
-              {/* Sezione Contatti & Recapiti Soggetto Principale */}
-              <div className="space-y-4 pt-6 border-t border-slate-100">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                  <Mail className="w-3.5 h-3.5" /> Contatti & Recapiti
-                </h4>
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 flex items-center gap-1"><Mail className="w-3 h-3" /> Email</label>
-                    <input type="email" value={personForm.email} onChange={e => setPersonForm({...personForm, email: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-emerald-500 outline-none" placeholder="esempio@mail.it" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 flex items-center gap-1"><Smartphone className="w-3 h-3 text-emerald-500" /> Cellulare / Tel.</label>
-                    <input type="text" value={personForm.phone} onChange={e => setPersonForm({...personForm, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-emerald-500 outline-none font-bold" placeholder="+39 3..." />
-                  </div>
-                  <div className="space-y-1 col-span-2">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 flex items-center gap-1"><ShieldCheck className="w-3 h-3 text-indigo-500" /> PEC (Posta Certificata)</label>
-                    <input type="email" value={personForm.pec} onChange={e => setPersonForm({...personForm, pec: e.target.value})} className="w-full bg-slate-50 border border-indigo-100 rounded-xl px-4 py-3 text-sm" placeholder="esempio@legalmail.it" />
-                  </div>
+              <div className="pt-10 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-8">
+                    <h4 className="text-[11px] font-black text-emerald-600 uppercase tracking-[0.3em] flex items-center gap-2">
+                        <UserRoundPlus className="w-5 h-5" /> 2. INQUILINO (OPZIONALE)
+                    </h4>
+                    <button onClick={() => setIsTenantActive(!isTenantActive)} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isTenantActive ? 'bg-red-50 text-red-500 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+                        {isTenantActive ? 'Rimuovi Inquilino' : 'Aggiungi Inquilino'}
+                    </button>
                 </div>
+                {isTenantActive && (
+                  <div className="space-y-8 animate-in slide-in-from-top-6">
+                    <div className="grid grid-cols-2 gap-8">
+                        <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Nome</label><input type="text" value={tenantForm.firstName} onChange={e => setTenantForm({...tenantForm, firstName: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold" /></div>
+                        <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Cognome</label><input type="text" value={tenantForm.lastName} onChange={e => setTenantForm({...tenantForm, lastName: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold" /></div>
+                        <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Codice Fiscale</label><input type="text" value={tenantForm.fiscalCode} onChange={e => setTenantForm({...tenantForm, fiscalCode: e.target.value.toUpperCase()})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-mono font-black" /></div>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Sezione Proprietario Collegato (Solo se il principale è Inquilino e siamo in creazione) */}
-              {personForm.role === 'Inquilino' && !isEditingPerson && (
-                <div className="space-y-4 pt-6 border-t border-slate-100 bg-emerald-50/30 -mx-8 px-8 py-6">
-                  <h4 className="text-[10px] font-black text-emerald-700 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                    <ShieldCheck className="w-3.5 h-3.5" /> Dati Proprietario (Locatore)
-                  </h4>
-                  
-                  <div className="flex gap-4 mb-6">
-                    <button 
-                      onClick={() => setOwnerStrategy('existing')}
-                      className={`flex-1 p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${ownerStrategy === 'existing' ? 'bg-emerald-600 text-white border-emerald-700 shadow-lg' : 'bg-white text-slate-500 border-slate-200 hover:border-emerald-300'}`}
-                    >
-                      <UserSearch className="w-6 h-6" />
-                      <span className="text-xs font-bold uppercase">Usa Esistente</span>
-                    </button>
-                    <button 
-                      onClick={() => setOwnerStrategy('new')}
-                      className={`flex-1 p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${ownerStrategy === 'new' ? 'bg-emerald-600 text-white border-emerald-700 shadow-lg' : 'bg-white text-slate-500 border-slate-200 hover:border-emerald-300'}`}
-                    >
-                      <UserRoundPlus className="w-6 h-6" />
-                      <span className="text-xs font-bold uppercase">Nuovo Proprietario</span>
-                    </button>
-                  </div>
+              <div className="pt-10 border-t border-slate-100">
+                <h4 className="text-[11px] font-black text-slate-600 uppercase tracking-[0.3em] mb-8 flex items-center gap-2">
+                  <Home className="w-5 h-5" /> 3. ASSEGNAZIONE UNITÀ IMMOBILIARE
+                </h4>
+                <div className="flex gap-6 mb-8">
+                    <button onClick={() => setUnitStrategy('new')} className={`flex-1 p-6 rounded-3xl border transition-all flex flex-col items-center gap-3 ${unitStrategy === 'new' ? 'bg-slate-900 text-white border-slate-800 shadow-2xl' : 'bg-slate-50 text-slate-400 border-slate-100'}`}><PlusCircle className="w-8 h-8" /><span className="text-xs font-black uppercase tracking-widest">Crea Nuova Unità</span></button>
+                    <button onClick={() => setUnitStrategy('archive')} className={`flex-1 p-6 rounded-3xl border transition-all flex flex-col items-center gap-3 ${unitStrategy === 'archive' ? 'bg-slate-900 text-white border-slate-800 shadow-2xl' : 'bg-slate-50 text-slate-400 border-slate-100'}`}><Database className="w-8 h-8" /><span className="text-xs font-black uppercase tracking-widest">Usa Esistente</span></button>
+                </div>
 
-                  {ownerStrategy === 'existing' && (
-                    <div className="space-y-2 animate-in slide-in-from-top-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Seleziona Proprietario in Archivio</label>
-                      <select 
-                        value={tempOwnerId} 
-                        onChange={e => setTempOwnerId(e.target.value)}
-                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold shadow-sm"
-                      >
-                        <option value="">-- Scegli proprietario --</option>
-                        {ownersList.map(o => (
-                          <option key={o.id} value={o.id}>{o.lastName} {o.firstName} ({o.fiscalCode})</option>
+                {unitStrategy === 'new' && (
+                  <div className="space-y-10 animate-in slide-in-from-right-6 duration-300">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">Interno</label><input type="text" value={unitForm.internal} onChange={e => setUnitForm({...unitForm, internal: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3 text-sm font-black" /></div>
+                        <div className="col-span-2 space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-1 flex items-center justify-between">
+                                Rif. Catastali <button onClick={handleCopyCondoCadastral} className="text-[9px] text-indigo-500 hover:text-indigo-700 font-black flex items-center gap-1 uppercase"><Copy className="w-3 h-3" /> Eredita</button>
+                            </label>
+                            <input type="text" value={unitForm.subalterno} onChange={e => setUnitForm({...unitForm, subalterno: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3 text-sm font-mono font-bold" />
+                        </div>
+                    </div>
+                    <div className="p-8 bg-indigo-50/30 rounded-[40px] border border-indigo-100 space-y-6">
+                        <div className="flex items-center justify-between">
+                            <h5 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Tabelle Millesimali</h5>
+                            <button onClick={addMillesimalRow} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-[9px] font-black">Aggiungi Tabella</button>
+                        </div>
+                        {millesimalEntries.map((entry, idx) => (
+                            <div key={idx} className="flex items-center gap-4">
+                                <input type="text" value={entry.label} onChange={(e) => updateMillesimalRow(idx, 'label', e.target.value.toUpperCase())} className="w-24 bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-black" />
+                                <input type="number" step="0.001" value={entry.value} onChange={(e) => updateMillesimalRow(idx, 'value', parseFloat(e.target.value) || 0)} className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-mono font-bold" />
+                                <button onClick={() => removeMillesimalRow(idx)} className="p-2 text-red-400 hover:bg-red-50 rounded-xl"><Trash className="w-4 h-4" /></button>
+                            </div>
                         ))}
-                      </select>
                     </div>
-                  )}
-
-                  {ownerStrategy === 'new' && (
-                    <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
-                      <div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase">Nome</label><input type="text" value={linkedOwnerForm.firstName} onChange={e => setLinkedOwnerForm({...linkedOwnerForm, firstName: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold" /></div>
-                      <div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase">Cognome</label><input type="text" value={linkedOwnerForm.lastName} onChange={e => setLinkedOwnerForm({...linkedOwnerForm, lastName: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold" /></div>
-                      
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1"><Mail className="w-3 h-3" /> Email</label>
-                        <input type="email" value={linkedOwnerForm.email} onChange={e => setLinkedOwnerForm({...linkedOwnerForm, email: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm" placeholder="esempio@mail.it" />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1"><Smartphone className="w-3 h-3 text-emerald-500" /> Cellulare / Tel.</label>
-                        <input type="text" value={linkedOwnerForm.phone} onChange={e => setLinkedOwnerForm({...linkedOwnerForm, phone: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold" placeholder="+39 3..." />
-                      </div>
-
-                      <div className="space-y-1 col-span-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">Indirizzo di Residenza Completo <MapPin className="w-3 h-3 text-red-400" /></label>
-                        <input type="text" value={linkedOwnerForm.residenceAddress} onChange={e => setLinkedOwnerForm({...linkedOwnerForm, residenceAddress: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm" placeholder="Via, Civico, CAP, Città (Prov)" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Sezione Patrimonio */}
-              {!isEditingPerson && (
-                <div className="space-y-4 pt-6 border-t border-slate-100">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                    <Link2 className="w-3.5 h-3.5" /> Assegnazione Unità
-                  </h4>
-                  <div className="flex gap-4 mb-6">
-                    <button onClick={() => setUnitStrategy('archive')} className={`flex-1 p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${unitStrategy === 'archive' ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-50 text-slate-500 hover:border-slate-300'}`}><Database className="w-6 h-6" /><span className="text-xs font-bold uppercase">Archivio</span></button>
-                    <button onClick={() => setUnitStrategy('new')} className={`flex-1 p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${unitStrategy === 'new' ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-50 text-slate-500 hover:border-slate-300'}`}><PlusCircle className="w-6 h-6" /><span className="text-xs font-bold uppercase">Nuova</span></button>
-                    <button onClick={() => setUnitStrategy('none')} className={`flex-1 p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${unitStrategy === 'none' ? 'bg-slate-400 text-white shadow-lg' : 'bg-slate-50 text-slate-500'}`}><X className="w-6 h-6" /><span className="text-xs font-bold uppercase">Nessuna</span></button>
                   </div>
-
-                  {unitStrategy === 'archive' && (
-                    <div className="space-y-2 animate-in slide-in-from-top-2">
-                      <select value={tempUnitId} onChange={e => setTempUnitId(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold shadow-sm"><option value="">-- Scegli unità --</option>{units.map(u => (<option key={u.id} value={u.id}>Int. {u.internal} - Piano {u.floor}</option>))}</select>
-                    </div>
-                  )}
-
-                  {unitStrategy === 'new' && (
-                    <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
-                      <div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase">Interno</label><input type="text" value={unitForm.internal} onChange={e => setUnitForm({...unitForm, internal: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold" /></div>
-                      <div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase">Piano</label><input type="text" value={unitForm.floor} onChange={e => setUnitForm({...unitForm, floor: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm" /></div>
-                    </div>
-                  )}
-                </div>
-              )}
+                )}
+                {unitStrategy === 'archive' && (
+                   <select value={tempUnitId} onChange={e => setTempUnitId(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-black uppercase">
+                        <option value="">-- Seleziona Unità Esistente di {selectedCondo.name} --</option>
+                        {units.filter(u => u.condoId === selectedCondo.id).map(u => (
+                            <option key={u.id} value={u.id}>INT. {u.internal} - {u.subalterno || 'N/D'}</option>
+                        ))}
+                   </select>
+                )}
+              </div>
             </div>
 
-            <div className="p-8 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
-              <button onClick={() => setIsPersonModalOpen(false)} className="px-6 py-3 font-bold text-slate-400 text-sm hover:text-slate-600 transition-colors">Annulla</button>
-              <button onClick={handleSavePerson} className="px-8 py-3 bg-slate-900 text-white rounded-2xl font-bold shadow-lg hover:bg-slate-800 flex items-center gap-2 transition-all">
-                <Check className="w-4 h-4 text-emerald-400" /> Salva Anagrafica
+            <div className="p-10 border-t border-slate-100 flex justify-end gap-4 bg-slate-50/50">
+              <button onClick={() => setIsPersonModalOpen(false)} className="px-8 py-4 font-black text-slate-400 text-xs uppercase tracking-widest">Annulla</button>
+              <button onClick={handleSavePerson} className="px-14 py-5 bg-slate-900 text-white rounded-[24px] font-black shadow-2xl hover:bg-black transition-all flex items-center gap-3">
+                <Check className="w-6 h-6 text-emerald-400" /> Salva Anagrafica Patrimonio
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL: NUOVA UNITÀ */}
+      {/* MODAL NUOVA UNITÀ RAPIDO */}
       {isUnitModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-all">
-          <div className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95">
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Inserimento Unità</h3>
-              <button onClick={() => setIsUnitModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full"><X className="w-6 h-6 text-slate-400" /></button>
+          <div className="bg-white w-full max-w-xl rounded-[48px] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 border border-slate-100">
+            <div className="p-10 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Censimento Unità - {selectedCondo?.name}</h3>
+              <button onClick={() => setIsUnitModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full"><X className="w-8 h-8 text-slate-300" /></button>
             </div>
-            <div className="p-8 grid grid-cols-2 gap-6">
-              <div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase">Interno</label><input type="text" value={unitForm.internal} onChange={e => setUnitForm({...unitForm, internal: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold" /></div>
-              <div className="space-y-1"><label className="text-[10px] font-bold text-slate-400 uppercase">Piano</label><input type="text" value={unitForm.floor} onChange={e => setUnitForm({...unitForm, floor: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm" /></div>
+            <div className="p-10 space-y-8">
+                <div className="grid grid-cols-2 gap-8">
+                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase">Interno</label><input type="text" value={unitForm.internal} onChange={e => setUnitForm({...unitForm, internal: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-black" /></div>
+                    <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase">Piano</label><input type="text" value={unitForm.floor} onChange={e => setUnitForm({...unitForm, floor: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold" /></div>
+                </div>
+                <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 space-y-6">
+                    <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Millesimi</h5>
+                    {millesimalEntries.map((entry, idx) => (
+                        <div key={idx} className="flex items-center gap-3">
+                            <input type="text" value={entry.label} onChange={(e) => updateMillesimalRow(idx, 'label', e.target.value.toUpperCase())} className="w-24 bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-black" />
+                            <input type="number" step="0.001" value={entry.value} onChange={(e) => updateMillesimalRow(idx, 'value', parseFloat(e.target.value) || 0)} className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-mono font-bold" />
+                        </div>
+                    ))}
+                </div>
             </div>
-            <div className="p-8 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
-              <button onClick={() => setIsUnitModalOpen(false)} className="px-6 py-3 font-bold text-slate-400 text-sm">Annulla</button>
-              <button onClick={handleSaveUnit} className="px-8 py-3 bg-emerald-500 text-white rounded-2xl font-bold shadow-lg">Aggiungi</button>
+            <div className="p-10 border-t border-slate-100 flex justify-end gap-4 bg-slate-50/50">
+              <button onClick={() => setIsUnitModalOpen(false)} className="px-8 py-4 font-black text-slate-400 text-xs uppercase tracking-widest">Annulla</button>
+              <button onClick={() => { 
+                  if(!unitForm.internal || !selectedCondo) return; 
+                  const mills: Record<string, number> = {};
+                  millesimalEntries.forEach(e => { if(e.label) mills[e.label] = e.value; });
+                  setUnits(prev => [...prev, { 
+                      id: `u_${Date.now()}`, 
+                      condoId: selectedCondo.id, 
+                      ...unitForm as Unit, 
+                      millesimals: mills, 
+                      ownerId: '' 
+                  }]); 
+                  setIsUnitModalOpen(false); 
+              }} className="px-12 py-5 bg-emerald-500 text-white rounded-[24px] font-black shadow-2xl hover:bg-emerald-600 transition-all">Salva Unità</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CONDOMINIO */}
+      {isCondoModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-all">
+          <div className="bg-white w-full max-w-3xl rounded-[48px] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 border border-slate-100">
+            <div className="p-10 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center text-emerald-400 shadow-2xl ring-4 ring-emerald-400/10">
+                  <Building2 className="w-8 h-8" />
+                </div>
+                <div>
+                    <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">{isEditingCondo ? 'Modifica Condominio' : 'Nuovo Condominio'}</h3>
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Dati Fiscale & Territoriali</p>
+                </div>
+              </div>
+              <button onClick={() => setIsCondoModalOpen(false)} className="p-3 hover:bg-slate-100 rounded-full"><X className="w-8 h-8 text-slate-300" /></button>
+            </div>
+            
+            <div className="p-10 space-y-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="col-span-1 md:col-span-2 space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase">Denominazione</label><input type="text" value={condoForm.name} onChange={e => setCondoForm({...condoForm, name: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-black" /></div>
+                <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase">Codice Fiscale</label><input type="text" value={condoForm.fiscalCode} onChange={e => setCondoForm({...condoForm, fiscalCode: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-mono font-black uppercase" /></div>
+                <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase">Dati Catastali (Fg/Part)</label><input type="text" value={condoForm.cadastralData} onChange={e => setCondoForm({...condoForm, cadastralData: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold" /></div>
+              </div>
+            </div>
+
+            <div className="p-10 border-t border-slate-100 flex justify-end gap-4 bg-slate-50/50">
+              <button onClick={() => setIsCondoModalOpen(false)} className="px-8 py-4 font-black text-slate-400 text-xs uppercase tracking-widest">Annulla</button>
+              <button onClick={handleSaveCondo} className="px-14 py-5 bg-slate-900 text-white rounded-[24px] font-black shadow-2xl flex items-center gap-3">
+                <Check className="w-6 h-6 text-emerald-400" /> {isEditingCondo ? 'Aggiorna' : 'Salva'}
+              </button>
             </div>
           </div>
         </div>
@@ -570,9 +652,5 @@ const CondominiumRegistry: React.FC<CondominiumRegistryProps> = ({
     </div>
   );
 };
-
-const UserMinus = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
-);
 
 export default CondominiumRegistry;

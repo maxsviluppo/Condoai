@@ -11,7 +11,7 @@ import Communication from './components/Communication';
 import LegalFiscal from './components/LegalFiscal';
 import Analytics from './components/Analytics';
 import CondominiumRegistry from './components/CondominiumRegistry';
-import { AppSection, MaintenanceRequest, Condominium } from './types';
+import { AppSection, MaintenanceRequest, Condominium, Person, Unit } from './types';
 import { Bell, Search, Settings, Building2, ChevronDown } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -43,6 +43,14 @@ const App: React.FC = () => {
       totalUnits: 12, 
       cadastralData: 'Fg. 12, Part. 55' 
     },
+  ]);
+
+  const [people, setPeople] = useState<Person[]>([
+    { id: 'p1', firstName: 'Mario', lastName: 'Rossi', email: 'mario.rossi@email.com', pec: 'mario.rossi@pec.it', phone: '333 1234567', fiscalCode: 'RSSMRA80A01F205Z', role: 'Proprietario' },
+  ]);
+
+  const [units, setUnits] = useState<Unit[]>([
+    { id: 'u1', condoId: '1', internal: '1A', staircase: 'A', floor: '1', subalterno: '12', millesimals: { 'A': 45.500 }, ownerId: 'p1', type: 'Appartamento' },
   ]);
 
   const addCondo = (newCondo: Condominium) => {
@@ -86,9 +94,13 @@ const App: React.FC = () => {
         return <CondominiumRegistry 
           initialCondoId={selectedCondoId} 
           condos={condos} 
+          people={people}
+          units={units}
           onAddCondo={addCondo} 
           onUpdateCondo={updateCondo}
           onDeleteCondo={deleteCondo}
+          setPeople={setPeople}
+          setUnits={setUnits}
         />;
       default: return <Dashboard selectedCondoId={selectedCondoId} />;
     }
