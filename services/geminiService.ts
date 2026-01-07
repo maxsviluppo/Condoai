@@ -1,7 +1,9 @@
 
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Use Vite's environment variable format with fallback
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+const ai = new GoogleGenAI({ apiKey });
 
 export const geminiService = {
   async processVoiceCommand(transcript: string, context: any): Promise<any> {

@@ -1,0 +1,46 @@
+# 🚀 COMANDI GIT - COPIA E INCOLLA QUESTI
+
+## IMPORTANTE: Esegui questi comandi UNO ALLA VOLTA nel terminale
+
+# 1. Verifica di essere nella cartella giusta
+cd c:\Users\Max\Downloads\Condoai-main\Condoai-main
+
+# 2. Inizializza Git (se non è già inizializzato)
+git init
+
+# 3. Aggiungi tutti i file (il .gitignore proteggerà .env automaticamente)
+git add .
+
+# 4. Verifica cosa verrà committato (IMPORTANTE: .env NON deve essere nella lista!)
+git status
+
+# 5. Se vedi .env nella lista, FERMATI e dimmi. Altrimenti continua:
+
+# 6. Fai il primo commit
+git commit -m "feat: initial commit - DomusA ready for Vercel deployment"
+
+# 7. Vai su GitHub e crea un nuovo repository (https://github.com/new)
+#    - Nome: DomusA (o come preferisci)
+#    - Private o Public
+#    - NON aggiungere README, .gitignore o license
+
+# 8. Dopo aver creato il repo, GitHub ti darà un URL tipo:
+#    https://github.com/TUO-USERNAME/DomusA.git
+#    
+#    Sostituisci TUO-USERNAME e DomusA con i tuoi valori e esegui:
+
+git remote add origin https://github.com/TUO-USERNAME/DomusA.git
+
+# 9. Rinomina il branch in main (se necessario)
+git branch -M main
+
+# 10. Fai il push su GitHub
+git push -u origin main
+
+# ✅ FATTO! Il tuo codice è su GitHub!
+
+# Ora vai su Vercel:
+# 1. https://vercel.com/new
+# 2. Importa il repository GitHub che hai appena creato
+# 3. Aggiungi la variabile d'ambiente: VITE_GEMINI_API_KEY
+# 4. Deploy!
