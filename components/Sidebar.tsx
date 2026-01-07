@@ -1,11 +1,12 @@
 
+
 import React, { useState } from 'react';
-import { 
-  LayoutDashboard, 
-  Receipt, 
-  Users, 
-  MessageSquare, 
-  Truck, 
+import {
+  LayoutDashboard,
+  Receipt,
+  Users,
+  MessageSquare,
+  Truck,
   FileText,
   Mic,
   Wrench,
@@ -14,7 +15,12 @@ import {
   Scale,
   Building2,
   ChevronDown,
-  LayoutGrid
+  LayoutGrid,
+  Home,
+  TrendingDown,
+  TrendingUp,
+  BarChart3,
+  Flag
 } from 'lucide-react';
 import { AppSection, Condominium } from '../types';
 
@@ -26,26 +32,27 @@ interface SidebarProps {
   condos: Condominium[];
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ 
-  currentSection, 
-  onNavigate, 
-  selectedCondoId, 
+const Sidebar: React.FC<SidebarProps> = ({
+  currentSection,
+  onNavigate,
+  selectedCondoId,
   setSelectedCondoId,
-  condos 
+  condos
 }) => {
   const [isCondoMenuOpen, setIsCondoMenuOpen] = useState(false);
 
   const menuItems = [
     { id: AppSection.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
-    { id: AppSection.CONDOMINIUMS, label: 'Anagrafica & Unità', icon: Building2 },
-    { id: AppSection.ACCOUNTING, label: 'Contabilità', icon: Receipt },
-    { id: AppSection.DOCUMENTS, label: 'Archivio AI', icon: FileText },
-    { id: AppSection.MAINTENANCE, label: 'Manutenzioni', icon: Wrench },
-    { id: AppSection.RESIDENTS, label: 'Comunicazioni', icon: MessageSquare },
+    { id: AppSection.CONDOMINIUMS, label: 'Condomini', icon: Building2 },
+    { id: AppSection.UNITS, label: 'Unità', icon: Home },
+    { id: AppSection.EXPENSES, label: 'Uscite', icon: TrendingDown },
+    { id: AppSection.INCOME, label: 'Entrate', icon: TrendingUp },
+    { id: AppSection.BUDGET, label: 'Bilancio Consuntivo', icon: BarChart3 },
     { id: AppSection.ASSEMBLIES, label: 'Assemblee', icon: Users },
-    { id: AppSection.ANALYTICS, label: 'Analisi & Prev.', icon: LineChart },
-    { id: AppSection.LEGAL, label: 'Legal & Fisco', icon: Scale },
+    { id: AppSection.COMMUNICATIONS, label: 'Comunicazioni', icon: MessageSquare },
+    { id: AppSection.REPORTS, label: 'Segnalazioni', icon: Flag },
     { id: AppSection.SUPPLIERS, label: 'Fornitori', icon: Truck },
+    { id: AppSection.DOCUMENTS, label: 'Documenti', icon: FileText },
   ];
 
   const selectedCondo = condos.find(c => c.id === selectedCondoId);
@@ -58,18 +65,17 @@ const Sidebar: React.FC<SidebarProps> = ({
         </h1>
         <p className="text-xs text-slate-400 mt-1 uppercase tracking-widest">Gestione Intelligente</p>
       </div>
-      
+
       <nav className="flex-1 mt-2 overflow-y-auto custom-scrollbar">
         <div className="px-4 mb-6">
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2 px-2">Focus Attivo</p>
           <div className="relative">
-            <button 
+            <button
               onClick={() => setIsCondoMenuOpen(!isCondoMenuOpen)}
-              className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all border ${
-                isCondoMenuOpen 
-                  ? 'bg-slate-700 border-emerald-500/50 shadow-lg' 
+              className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all border ${isCondoMenuOpen
+                  ? 'bg-slate-700 border-emerald-500/50 shadow-lg'
                   : 'bg-slate-900/40 border-slate-700 hover:bg-slate-700/50 hover:border-slate-600'
-              }`}
+                }`}
             >
               <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
                 {selectedCondoId === 'all' ? <LayoutGrid className="w-4 h-4" /> : <Building2 className="w-4 h-4" />}
@@ -87,7 +93,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             {isCondoMenuOpen && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                <button 
+                <button
                   onClick={() => { setSelectedCondoId('all'); setIsCondoMenuOpen(false); }}
                   className={`w-full text-left px-4 py-3 text-xs hover:bg-slate-800 flex items-center gap-3 transition-colors ${selectedCondoId === 'all' ? 'text-emerald-400 font-bold bg-emerald-400/5' : 'text-slate-400'}`}
                 >
@@ -95,7 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </button>
                 <div className="h-px bg-slate-800 mx-3" />
                 {condos.map(condo => (
-                  <button 
+                  <button
                     key={condo.id}
                     onClick={() => { setSelectedCondoId(condo.id); setIsCondoMenuOpen(false); }}
                     className={`w-full text-left px-4 py-3 text-xs hover:bg-slate-800 flex items-center gap-3 transition-colors ${selectedCondoId === condo.id ? 'text-emerald-400 font-bold bg-emerald-400/5' : 'text-slate-400'}`}
@@ -116,11 +122,10 @@ const Sidebar: React.FC<SidebarProps> = ({
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
-              className={`w-full flex items-center gap-4 px-6 py-3.5 transition-all duration-200 ${
-                isActive 
-                  ? 'bg-slate-700 text-white border-r-4 border-emerald-400 shadow-inner' 
+              className={`w-full flex items-center gap-4 px-6 py-3.5 transition-all duration-200 ${isActive
+                  ? 'bg-slate-700 text-white border-r-4 border-emerald-400 shadow-inner'
                   : 'hover:bg-slate-700/50 text-slate-400 hover:text-slate-200'
-              }`}
+                }`}
             >
               <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : ''}`} />
               <span className="font-medium text-sm">{item.label}</span>
@@ -130,13 +135,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       <div className="p-4 space-y-4">
-        <button 
+        <button
           onClick={() => onNavigate(AppSection.EMERGENCY)}
-          className={`w-full p-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all ${
-            currentSection === AppSection.EMERGENCY 
-              ? 'bg-red-500 text-white scale-105 shadow-lg shadow-red-500/20' 
+          className={`w-full p-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all ${currentSection === AppSection.EMERGENCY
+              ? 'bg-red-500 text-white scale-105 shadow-lg shadow-red-500/20'
               : 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white'
-          }`}
+            }`}
         >
           <AlertOctagon className="w-5 h-5" />
           <span>EMERGENZA</span>

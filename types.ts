@@ -1,16 +1,26 @@
 
+
 export enum AppSection {
   DASHBOARD = 'DASHBOARD',
+  CONDOMINIUMS = 'CONDOMINIUMS', // Condomini (configurazioni)
+  UNITS = 'UNITS', // Unità (separate)
+  EXPENSES = 'EXPENSES', // Uscite
+  INCOME = 'INCOME', // Entrate
+  BUDGET = 'BUDGET', // Bilancio Consuntivo
+  ASSEMBLIES = 'ASSEMBLIES', // Assemblee
+  COMMUNICATIONS = 'COMMUNICATIONS', // Comunicazioni
+  REPORTS = 'REPORTS', // Segnalazioni
+  SUPPLIERS = 'SUPPLIERS', // Fornitori
+  DOCUMENTS = 'DOCUMENTS', // Documenti
+  AI_ASSISTANT = 'AI_ASSISTANT', // Assistente AI
+
+  // Legacy - manteniamo per compatibilità
   ACCOUNTING = 'ACCOUNTING',
-  ASSEMBLIES = 'ASSEMBLIES',
   RESIDENTS = 'RESIDENTS',
-  SUPPLIERS = 'SUPPLIERS',
-  DOCUMENTS = 'DOCUMENTS',
   MAINTENANCE = 'MAINTENANCE',
   EMERGENCY = 'EMERGENCY',
   ANALYTICS = 'ANALYTICS',
-  LEGAL = 'LEGAL',
-  CONDOMINIUMS = 'CONDOMINIUMS'
+  LEGAL = 'LEGAL'
 }
 
 export interface Document {
@@ -85,14 +95,22 @@ export interface Unit {
   staircase?: string;
   floor: string;
   subalterno?: string;
-  millesimals: Record<string, number>; 
+  millesimals: Record<string, number>;
   ownerId: string;
   tenantId?: string;
   type: 'Appartamento' | 'Box' | 'Cantina' | 'Negozio';
 }
 
+export interface MillesimalTable {
+  id: string;
+  name: string; // es. "Tabella A - Spese Generali", "Tabella B - Riscaldamento"
+  values: Record<string, number>; // unitId -> valore millesimale
+}
+
 export interface Condominium {
   id: string;
+
+  // Dati Anagrafici
   name: string;
   street: string;
   streetNumber: string;
@@ -100,6 +118,32 @@ export interface Condominium {
   city: string;
   province: string;
   fiscalCode: string;
+
+  // Dati Strutturali
+  constructionYear?: number; // Anno Costruzione
+  numberOfFloors?: number; // Numero Piani
+  numberOfStaircases?: number; // Numero Scale
+  numberOfUnits: number; // Numero Interni (totalUnits rinominato)
+
+  // Dati Finanziari
+  monthlyFee?: number; // Quota Mensile Ordinaria (€)
+
+  // Multimedia
+  imageUrl?: string; // URL Immagine
+
+  // Servizi
+  hasElevator?: boolean; // Ascensore
+  hasCentralHeating?: boolean; // Risc. Centrale
+  hasGarden?: boolean; // Giardino
+  hasParking?: boolean; // Parcheggio
+
+  // Tabelle Millesimali
+  millesimalTables?: MillesimalTable[]; // Array di tabelle millesimali
+
+  // Note
+  notes?: string; // Note libere
+
+  // Legacy/Compatibilità
   cadastralData?: string;
-  totalUnits: number;
+  totalUnits: number; // Manteniamo per compatibilità, uguale a numberOfUnits
 }

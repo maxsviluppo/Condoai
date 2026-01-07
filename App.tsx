@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -11,37 +12,41 @@ import Communication from './components/Communication';
 import LegalFiscal from './components/LegalFiscal';
 import Analytics from './components/Analytics';
 import CondominiumRegistry from './components/CondominiumRegistry';
+import Expenses from './components/Expenses';
+import Income from './components/Income';
+import Budget from './components/Budget';
+import Units from './components/Units';
 import { AppSection, MaintenanceRequest, Condominium, Person, Unit } from './types';
 import { Bell, Search, Settings, Building2, ChevronDown } from 'lucide-react';
 
 const App: React.FC = () => {
   const [currentSection, setCurrentSection] = useState<AppSection>(AppSection.DASHBOARD);
   const [selectedCondoId, setSelectedCondoId] = useState<string>('all');
-  
+
   const [condos, setCondos] = useState<Condominium[]>([
-    { 
-      id: '1', 
-      name: 'Villa dei Fiori', 
-      street: 'Via Roma', 
-      streetNumber: '12', 
-      cap: '20121', 
-      city: 'Milano', 
-      province: 'MI', 
-      fiscalCode: '90012345678', 
-      totalUnits: 24, 
-      cadastralData: 'Fg. 4, Part. 120' 
+    {
+      id: '1',
+      name: 'Villa dei Fiori',
+      street: 'Via Roma',
+      streetNumber: '12',
+      cap: '20121',
+      city: 'Milano',
+      province: 'MI',
+      fiscalCode: '90012345678',
+      totalUnits: 24,
+      cadastralData: 'Fg. 4, Part. 120'
     },
-    { 
-      id: '2', 
-      name: 'Residenza Parco', 
-      street: 'Viale Monza', 
-      streetNumber: '45', 
-      cap: '20125', 
-      city: 'Milano', 
-      province: 'MI', 
-      fiscalCode: '91122334455', 
-      totalUnits: 12, 
-      cadastralData: 'Fg. 12, Part. 55' 
+    {
+      id: '2',
+      name: 'Residenza Parco',
+      street: 'Viale Monza',
+      streetNumber: '45',
+      cap: '20125',
+      city: 'Milano',
+      province: 'MI',
+      fiscalCode: '91122334455',
+      totalUnits: 12,
+      cadastralData: 'Fg. 12, Part. 55'
     },
   ]);
 
@@ -81,36 +86,75 @@ const App: React.FC = () => {
 
   const renderSection = () => {
     switch (currentSection) {
-      case AppSection.DASHBOARD: return <Dashboard selectedCondoId={selectedCondoId} />;
-      case AppSection.ACCOUNTING: return <Accounting />;
-      case AppSection.ASSEMBLIES: return <Assemblies />;
-      case AppSection.MAINTENANCE: return <Maintenance requests={maintenanceRequests} />;
-      case AppSection.DOCUMENTS: return <Documents />;
-      case AppSection.EMERGENCY: return <EmergencyHub />;
-      case AppSection.RESIDENTS: return <Communication />;
-      case AppSection.LEGAL: return <LegalFiscal />;
-      case AppSection.ANALYTICS: return <Analytics />;
-      case AppSection.CONDOMINIUMS: 
-        return <CondominiumRegistry 
-          initialCondoId={selectedCondoId} 
-          condos={condos} 
+      case AppSection.DASHBOARD:
+        return <Dashboard selectedCondoId={selectedCondoId} />;
+
+      // Nuove sezioni principali
+      case AppSection.CONDOMINIUMS:
+        return <CondominiumRegistry
+          initialCondoId={selectedCondoId}
+          condos={condos}
           people={people}
           units={units}
-          onAddCondo={addCondo} 
+          onAddCondo={addCondo}
           onUpdateCondo={updateCondo}
           onDeleteCondo={deleteCondo}
           setPeople={setPeople}
           setUnits={setUnits}
         />;
-      default: return <Dashboard selectedCondoId={selectedCondoId} />;
+
+      case AppSection.UNITS:
+        return <Units />;
+
+      case AppSection.EXPENSES:
+        return <Expenses />;
+
+      case AppSection.INCOME:
+        return <Income />;
+
+      case AppSection.BUDGET:
+        return <Budget />;
+
+      case AppSection.ASSEMBLIES:
+        return <Assemblies />;
+
+      case AppSection.COMMUNICATIONS:
+      case AppSection.RESIDENTS:
+        return <Communication />;
+
+      case AppSection.REPORTS:
+      case AppSection.MAINTENANCE:
+        return <Maintenance requests={maintenanceRequests} />;
+
+      case AppSection.SUPPLIERS:
+        return <div className="text-center py-20 text-slate-400">Sezione Fornitori in sviluppo</div>;
+
+      case AppSection.DOCUMENTS:
+        return <Documents />;
+
+      // Legacy sections
+      case AppSection.ACCOUNTING:
+        return <Accounting />;
+
+      case AppSection.EMERGENCY:
+        return <EmergencyHub />;
+
+      case AppSection.LEGAL:
+        return <LegalFiscal />;
+
+      case AppSection.ANALYTICS:
+        return <Analytics />;
+
+      default:
+        return <Dashboard selectedCondoId={selectedCondoId} />;
     }
   };
 
   return (
     <div className="min-h-screen flex bg-slate-50 text-slate-900">
-      <Sidebar 
-        currentSection={currentSection} 
-        onNavigate={setCurrentSection} 
+      <Sidebar
+        currentSection={currentSection}
+        onNavigate={setCurrentSection}
         selectedCondoId={selectedCondoId}
         setSelectedCondoId={setSelectedCondoId}
         condos={condos}
@@ -120,8 +164,8 @@ const App: React.FC = () => {
           <div className="flex items-center gap-6">
             <div className="relative w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Cerca documenti, fatture..."
                 className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm"
               />
@@ -140,14 +184,14 @@ const App: React.FC = () => {
               </button>
 
               <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-slate-100 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 py-2">
-                <button 
+                <button
                   onClick={() => setSelectedCondoId('all')}
                   className={`w-full text-left px-4 py-3 text-sm hover:bg-slate-50 flex items-center gap-3 ${selectedCondoId === 'all' ? 'text-emerald-600 font-bold bg-emerald-50/50' : 'text-slate-600'}`}
                 >
                   <div className="w-2 h-2 rounded-full bg-emerald-500" /> Tutti i Condomini
                 </button>
                 {condos.map(condo => (
-                  <button 
+                  <button
                     key={condo.id}
                     onClick={() => setSelectedCondoId(condo.id)}
                     className={`w-full text-left px-4 py-3 text-sm hover:bg-slate-50 flex items-center gap-3 ${selectedCondoId === condo.id ? 'text-emerald-600 font-bold bg-emerald-50/50' : 'text-slate-600'}`}
